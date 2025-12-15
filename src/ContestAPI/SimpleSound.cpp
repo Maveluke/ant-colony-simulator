@@ -12,7 +12,7 @@
 //-----------------------------------------------------------------------------
 // Singleton Accessor.
 //-----------------------------------------------------------------------------
-CSimpleSound &CSimpleSound::GetInstance()
+CSimpleSound& CSimpleSound::GetInstance()
 {
 	static CSimpleSound theSoundClass;
 	return theSoundClass;
@@ -46,7 +46,7 @@ bool CSimpleSound::Initialize()
 void CSimpleSound::Shutdown()
 {
 	// Release the secondary buffers.
-	for (auto& sound : m_sounds) 
+	for (auto& sound : m_sounds)
 	{
 		ma_sound_uninit(&sound.second);
 	}
@@ -57,7 +57,7 @@ void CSimpleSound::Shutdown()
 	m_initialized = false;
 }
 
-bool CSimpleSound::StartSound(const char *filename, const SoundFlags flags)
+bool CSimpleSound::StartSound(const char* filename, const SoundFlags flags)
 {
 	if (m_sounds.find(filename) == m_sounds.end())
 	{
@@ -79,7 +79,7 @@ bool CSimpleSound::StartSound(const char *filename, const SoundFlags flags)
 }
 
 
-bool CSimpleSound::IsPlaying(const char *filename)
+bool CSimpleSound::IsPlaying(const char* filename)
 {
 	auto it = m_sounds.find(filename);
 
@@ -91,7 +91,7 @@ bool CSimpleSound::IsPlaying(const char *filename)
 	return ma_sound_is_playing(&it->second);
 }
 
-bool CSimpleSound::StopSound(const char *filename)
+bool CSimpleSound::StopSound(const char* filename)
 {
 	if (IsPlaying(filename))
 	{

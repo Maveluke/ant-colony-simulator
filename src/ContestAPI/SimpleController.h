@@ -25,23 +25,23 @@ namespace App
 {
 	enum GamepadButton
 	{
-		BTN_A =				0x0001,
-		BTN_B =				0x0002,
-		BTN_X =				0x0004,
-		BTN_Y =				0x0008,
+		BTN_A			= 0x0001,
+		BTN_B			= 0x0002,
+		BTN_X			= 0x0004,
+		BTN_Y			= 0x0008,
 
-		BTN_START =			0x0010,
-		BTN_BACK =			0x0020,
+		BTN_START		= 0x0010,
+		BTN_BACK		= 0x0020,
 
-		BTN_LBUMPER =		0x0040,
-		BTN_LSTICK =		0x0080,
-		BTN_RBUMPER =		0x0100,
-		BTN_RSTICK =		0x0200,
+		BTN_LBUMPER		= 0x0040,
+		BTN_LSTICK		= 0x0080,
+		BTN_RBUMPER		= 0x0100,
+		BTN_RSTICK		= 0x0200,
 
-		BTN_DPAD_LEFT =		0x0400,
-		BTN_DPAD_RIGHT =	0x0800,
-		BTN_DPAD_UP =		0x1000,
-		BTN_DPAD_DOWN =		0x2000
+		BTN_DPAD_LEFT	= 0x0400,
+		BTN_DPAD_RIGHT	= 0x0800,
+		BTN_DPAD_UP		= 0x1000,
+		BTN_DPAD_DOWN	= 0x2000
 	};
 }
 
@@ -54,17 +54,17 @@ class CController
 public:
 	friend class CSimpleControllers;
 
-	CController(){}
-	virtual ~CController(){}
+	CController() {}
+	virtual ~CController() {}
 
 	virtual bool CheckButton(const App::GamepadButton button, const bool onPress = true) const = 0;
 
-	virtual float GetLeftThumbStickX() const= 0 ;
+	virtual float GetLeftThumbStickX() const = 0;
 	virtual float GetLeftThumbStickY() const = 0;
 	virtual float GetRightThumbStickX() const = 0;
 	virtual float GetRightThumbStickY() const = 0;
 	virtual float GetLeftTrigger() const = 0;
-	virtual float GetRightTrigger() const = 0;	
+	virtual float GetRightTrigger() const = 0;
 };
 
 #if BUILD_PLATFORM_WINDOWS
@@ -78,12 +78,12 @@ public:
 
 	virtual bool CheckButton(const App::GamepadButton button, const bool onPress = true) const override;
 
-	float GetLeftThumbStickX() const override ;
+	float GetLeftThumbStickX() const override;
 	float GetLeftThumbStickY() const override;
 	float GetRightThumbStickX() const override;
 	float GetRightThumbStickY() const override;
 	float GetLeftTrigger() const override;
-	float GetRightTrigger() const override;	
+	float GetRightTrigger() const override;
 
 protected:
 	XINPUT_STATE m_state;
@@ -110,7 +110,7 @@ public:
 	float GetRightThumbStickX() const override;
 	float GetRightThumbStickY() const override;
 	float GetLeftTrigger() const override;
-	float GetRightTrigger() const override;	
+	float GetRightTrigger() const override;
 
 protected:
 	struct State
@@ -147,11 +147,11 @@ using TController = void;
 class CSimpleControllers
 {
 public:
-	static CSimpleControllers &GetInstance();
-	
+	static CSimpleControllers& GetInstance();
+
 	void Update();
-	
-	const CController &GetController(const int pad = 0)
+
+	const CController& GetController(const int pad = 0)
 	{
 		const int padNum = (pad >= MAX_CONTROLLERS) ? 0 : pad;
 		return m_Controllers[padNum];

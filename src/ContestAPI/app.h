@@ -95,97 +95,84 @@ namespace App
 	// Display Calls.
 	//*******************************************************************************************
 	//-------------------------------------------------------------------------------------------
-	// void DrawLine( float sx, float sy, float ex, float ey, float r = 1.0f, float g = 1.0f, float b = 1.0f );
-	//-------------------------------------------------------------------------------------------
-	// Draw a 2D Line from sx,sy to ex, ey using color r = red, g = green, b=blue.
+	// Draw a 2D Line from sx,sy to ex,ey using color r=red, g=green, b=blue.
 	//-------------------------------------------------------------------------------------------
 	void DrawLine(const float sx, const float sy, const float ex, const float ey, const float r = 1.0f, const float g = 1.0f, const float b = 1.0f);
 
 	//-------------------------------------------------------------------------------------------
-	// void DrawTriangle(const float p1x, const float p1y, const float p2x, const float p2y, const float p3x, const float p3y, const float r = 1.0f, const float g = 1.0f, const float b = 1.0f, const bool wireframe = false)
+	// Draws a triangle from the pixel coordinates (or NDC if APP_USE_VIRTUAL_RES is undefined) and the z and w coordinates in OpenGL's NDC (-1 to 1) (default depth test is GL_LESS).
+	// Each vertex can have a different color.
+	// There is also the option to draw the triangle as a wireframe or filled.
 	//-------------------------------------------------------------------------------------------
-	// Draws a filled 2D Triangle with the 3 points (p1x, p1y), (p2x, p2y), (p3x, p3y), using color r = red, g = green, b=blue. There is also the option to draw the triangle as a wireframe or filled.
-	//-------------------------------------------------------------------------------------------
-	void DrawTriangle(const float p1x, const float p1y, const float p2x, const float p2y, const float p3x, const float p3y, const float r = 1.0f, const float g = 1.0f, const float b = 1.0f, const bool wireframe = false);
+	void DrawTriangle(const float p1x, const float p1y, const float p1z, const float p1w,
+					  const float p2x, const float p2y, const float p2z, const float p2w,
+					  const float p3x, const float p3y, const float p3z, const float p3w,
+					  const float r1, const float g1, const float b1,
+					  const float r2, const float g2, const float b2,
+					  const float r3, const float g3, const float b3,
+					  const bool isWireframe = false);
 
 	//-------------------------------------------------------------------------------------------
-	// void Print(float x, float y, const char *text, float r = 1.0f, float g = 1.0f, float b = 1.0f, void *font = GLUT_BITMAP_HELVETICA_18);
-	//-------------------------------------------------------------------------------------------
-	// Print text to screen at x,y coordinates using color r = red, g = green, b=blue using the passed GLUT font. 
+	// Print text to screen at x,y coordinates using color r=red, g=green, b=blue using the passed GLUT font. 
 	// Color values are in the range 0.0f to 1.0f.
 	// Available fonts...
 	// GLUT_BITMAP_9_BY_15, GLUT_BITMAP_8_BY_13, GLUT_BITMAP_TIMES_ROMAN_10, GLUT_BITMAP_TIMES_ROMAN_24
 	// GLUT_BITMAP_HELVETICA_10, GLUT_BITMAP_HELVETICA_12, GLUT_BITMAP_HELVETICA_18	
 	//-------------------------------------------------------------------------------------------
-	void Print(const float x, const float y, const char *text, const float r = 1.0f, const float g = 1.0f, const float b = 1.0f, void *font = GLUT_BITMAP_HELVETICA_18);
+	void Print(const float x, const float y, const char* text, const float r = 1.0f, const float g = 1.0f, const float b = 1.0f, void* font = GLUT_BITMAP_HELVETICA_18);
 
 	//-------------------------------------------------------------------------------------------
-	// CSimpleSprite *CreateSprite(const char *fileName, int columns, int rows)
-	//-------------------------------------------------------------------------------------------
-	// Creates a sprite object from the given texture file. File must be a 32 bit BMP format.
-	// The columns and rows paramaters define the number of columns and rows of sprite animation
-	// frames in the given image.
+	// Creates a sprite object from the given texture file. File must be BMP, JPG, or PNG format.
+	// The columns and rows parameters define the number of columns and rows of sprite animation
+	// frames in the given image. These row/column numbers start at 1 (not 0).
 	// You can then use the CSimpleSprite methods to animate/move etc.
 	//-------------------------------------------------------------------------------------------
-	CSimpleSprite *CreateSprite(const char *fileName, const int columns, const int rows);
-		
+	CSimpleSprite* CreateSprite(const char* fileName, const int columns, const int rows);
+
 	//*******************************************************************************************
 	// Sound handling.	
 	//*******************************************************************************************
 	//-------------------------------------------------------------------------------------------
-	// void PlayAudio(const char *fileName, bool looping = false);
-	//-------------------------------------------------------------------------------------------
-	// Plays the passed .wav file. Set looping to true if you want the sound to loop.
+	// Plays the passed WAV, MP3, or FLAC file. Set looping to true if you want the sound to loop.
 	// If the sound is already playing it will restart.
 	//-------------------------------------------------------------------------------------------
-	void PlayAudio(const char *fileName, const bool looping = false);
+	void PlayAudio(const char* fileName, const bool isLooping = false);
 
-	//-------------------------------------------------------------------------------------------
-	// void StopAudio(const char *fileName);
 	//-------------------------------------------------------------------------------------------	
-	// Stops the given .wav file from playing.
+	// Stops the given audio file from playing.
 	//-------------------------------------------------------------------------------------------	
-	void StopAudio(const char *fileName);
+	void StopAudio(const char* fileName);
 
-	//-------------------------------------------------------------------------------------------
-	// bool IsSoundPlaying(const char *filename);
 	//-------------------------------------------------------------------------------------------	
-	// Returns true if the given .wav file is currently playing.
+	// Returns true if the given audio file is currently playing.
 	//-------------------------------------------------------------------------------------------	
-	bool IsSoundPlaying(const char *filename);
-	
+	bool IsSoundPlaying(const char* filename);
+
 	//*******************************************************************************************
 	// Input handling.	
 	//*******************************************************************************************
 	//-------------------------------------------------------------------------------------------
-	// bool IsKeyPressed(int key);
-	//-------------------------------------------------------------------------------------------
 	// Returns true if the given key is currently being pressed. Uses custom App keys
 	// Doesn't support extended functions
 	// e.g.
-	// IsKeyPressed(App:KEY_A); // Is a pressed
+	// IsKeyPressed(App:KEY_A); // Is A pressed
 	// IsKeyPressed(App::KEY_LEFT; // Is left arrow pressed
 	//-------------------------------------------------------------------------------------------
 	bool IsKeyPressed(const Key key);
 
 	//-------------------------------------------------------------------------------------------
-	// void GetMousePos(float &x, float &y);
+	// Sets the value of the passed in float references to the current position of the mouse pointer.
 	//-------------------------------------------------------------------------------------------
-	// Sets the value of the passed in float references to the current position of the mouse pointer.	
-	//-------------------------------------------------------------------------------------------
-	void GetMousePos(float &x, float &y);
+	void GetMousePos(float& x, float& y);
 
-	//-------------------------------------------------------------------------------------------
-	// 	bool IsMousePressed(int button);
 	//-------------------------------------------------------------------------------------------
 	// Checks if mouse button is pressed. Uses GLUT constants
 	// e.g.
 	// IsMousePressed(GLUT_LEFT_BUTTON)
+	// Available buttons: GLUT_LEFT_BUTTON, GLUT_MIDDLE_BUTTON, and GLUT_RIGHT_BUTTON
 	//-------------------------------------------------------------------------------------------
 	bool IsMousePressed(int button);
 
-	//-------------------------------------------------------------------------------------------
-	// const CController &GetController(int pad = 0);
 	//-------------------------------------------------------------------------------------------
 	// Returns a reference to a game controller. 
 	// You can use this object to query gamepad buttons and analog stick positions etc.
@@ -195,6 +182,6 @@ namespace App
 	// GetController(0).GetLeftThumbStickX(); Returns a float between -1.0f to 1.0f representing the position of the left thumb sticks X Axis.
 	// See SimpleController.h for more info.
 	//-------------------------------------------------------------------------------------------
-	const CController &GetController(const int pad = 0 );
+	const CController& GetController(const int pad = 0);
 };
 #endif //_APP_H

@@ -16,7 +16,7 @@
 // Utils and externals for system info.
 
 namespace App
-{	
+{
 	void DrawLine(const float sx, const float sy, const float ex, const float ey, const float r, const float g, const float b)
 	{
 		float startX = sx;
@@ -33,12 +33,18 @@ namespace App
 		glVertex2f(endX, endY);
 		glEnd();
 	}
-
-	void DrawTriangle(const float p1x, const float p1y, const float p2x, const float p2y, const float p3x, const float p3y, const float r, const float g, const float b, const bool wireframe)
+	
+	void DrawTriangle(const float p1x, const float p1y, const float p1z, const float p1w, 
+					  const float p2x, const float p2y, const float p2z, const float p2w,
+					  const float p3x, const float p3y, const float p3z, const float p3w,
+					  const float r1, const float g1, const float b1,
+					  const float r2, const float g2, const float b2,
+					  const float r3, const float g3, const float b3,
+					  const bool isWireframe)
 	{
 		float point1X = p1x;
 		float point1Y = p1y;
-		
+
 		float point2X = p2x;
 		float point2Y = p2y;
 
@@ -50,25 +56,29 @@ namespace App
 		APP_VIRTUAL_TO_NATIVE_COORDS(point2X, point2Y);
 		APP_VIRTUAL_TO_NATIVE_COORDS(point3X, point3Y);
 #endif
-		if (wireframe)
+		if (isWireframe)
 		{
 			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 		}
+		glEnable(GL_DEPTH_TEST);
 		glBegin(GL_TRIANGLES);
-		glColor3f(r, g, b);
-		glVertex2f(point1X, point1Y);
-		glVertex2f(point2X, point2Y);
-		glVertex2f(point3X, point3Y);
+		glColor3f(r1, g1, b1);
+		glVertex4f(point1X, point1Y, p1z, p1w);
+		glColor3f(r2, g2, b2);
+		glVertex4f(point2X, point2Y, p2z, p2w);
+		glColor3f(r3, g3, b3);
+		glVertex4f(point3X, point3Y, p3z, p3w);
 		glEnd();
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+		glDisable(GL_DEPTH_TEST);
 	}
-	
-	CSimpleSprite *CreateSprite(const char *fileName, const int columns, const int rows)
+
+	CSimpleSprite* CreateSprite(const char* fileName, const int columns, const int rows)
 	{
 		return new CSimpleSprite(fileName, columns, rows);
 	}
 
-	void GetMousePos(float &x, float &y)
+	void GetMousePos(float& x, float& y)
 	{
 		Internal::GetMousePos(x, y);
 
@@ -85,24 +95,24 @@ namespace App
 		return Internal::IsMousePressed(button);
 	}
 
-	void PlayAudio(const char *fileName, const bool looping)
+	void PlayAudio(const char* fileName, const bool isLooping)
 	{
-		const SoundFlags flags = (looping) ? SoundFlags::Looping : SoundFlags::None;
+		const SoundFlags flags = (isLooping) ? SoundFlags::Looping : SoundFlags::None;
 		CSimpleSound::GetInstance().StartSound(fileName, flags);
 	}
 
-	void StopAudio(const char *fileName)
+	void StopAudio(const char* fileName)
 	{
 		CSimpleSound::GetInstance().StopSound(fileName);
 	}
 
-	bool IsSoundPlaying(const char *fileName)
+	bool IsSoundPlaying(const char* fileName)
 	{
 		return CSimpleSound::GetInstance().IsPlaying(fileName);
 	}
 
 	// This prints a string to the screen
-	void Print(const float x, const float y, const char *st, const float r, const float g, const float b, void *font)
+	void Print(const float x, const float y, const char* st, const float r, const float g, const float b, void* font)
 	{
 		float xPos = x;
 		float yPos = y;
@@ -119,7 +129,7 @@ namespace App
 		}
 	}
 
-	const CController &GetController(const int pad )
+	const CController& GetController(const int pad)
 	{
 		return CSimpleControllers::GetInstance().GetController(pad);
 	}
@@ -127,26 +137,26 @@ namespace App
 	bool IsKeyPressed(const App::Key key)
 	{
 		//ASCII keys with on symbol (space, delete, backspace)
-		#define HANDLE_ASCII_SPECIAL_KEY(KEYCODE, KEY) \
+#define HANDLE_ASCII_SPECIAL_KEY(KEYCODE, KEY) \
 			case KEYCODE:\
 				return Internal::IsKeyPressed(KEY);\
 				break;
 
 		//ASCII keys with muliple symbols (letters, numbers, etc)
-		#define HANDLE_ASCII_KEY(KEYCODE, KEY, MODIFIED_KEY) \
+#define HANDLE_ASCII_KEY(KEYCODE, KEY, MODIFIED_KEY) \
 			case KEYCODE: \
 				return Internal::IsKeyPressed(KEY) || Internal::IsKeyPressed(MODIFIED_KEY); \
 				break;
 
 		//Special Keys with one symbol
-		#define HANDLE_SPECIAL_KEY(KEYCODE, SPECIAL_KEY) \
+#define HANDLE_SPECIAL_KEY(KEYCODE, SPECIAL_KEY) \
 			case KEYCODE: \
 				return Internal::IsSpecialKeyPressed(SPECIAL_KEY); \
 				break;
-		
-		switch(key)
+
+		switch (key)
 		{
-		//Keyboard keys
+			//Keyboard keys
 			HANDLE_ASCII_KEY(KEY_A, 'a', 'A')
 			HANDLE_ASCII_KEY(KEY_B, 'b', 'B')
 			HANDLE_ASCII_KEY(KEY_C, 'c', 'C')
@@ -174,7 +184,7 @@ namespace App
 			HANDLE_ASCII_KEY(KEY_Y, 'y', 'Y')
 			HANDLE_ASCII_KEY(KEY_Z, 'z', 'Z')
 
-		//Number keys
+			//Number keys
 			HANDLE_ASCII_KEY(KEY_1, '1', '!')
 			HANDLE_ASCII_KEY(KEY_2, '2', '@')
 			HANDLE_ASCII_KEY(KEY_3, '3', '#')
@@ -186,7 +196,7 @@ namespace App
 			HANDLE_ASCII_KEY(KEY_9, '9', '(')
 			HANDLE_ASCII_KEY(KEY_0, '0', ')')
 
-		//Special Keys
+			//Special Keys
 			HANDLE_ASCII_SPECIAL_KEY(KEY_SPACE, ' ')
 			HANDLE_ASCII_SPECIAL_KEY(KEY_ESC, 27)
 			HANDLE_ASCII_SPECIAL_KEY(KEY_ENTER, '\r')
@@ -202,7 +212,7 @@ namespace App
 			HANDLE_SPECIAL_KEY(KEY_INSERT, GLUT_KEY_INSERT)
 
 			default:
-			return false;
+				return false;
 		}
 
 		//Unhandled key

@@ -25,16 +25,16 @@ class CSimpleSound
 public:
 
 	static CSimpleSound& GetInstance();
-	CSimpleSound();	
+	CSimpleSound();
 	~CSimpleSound();
 
 	bool Initialize();
 	void Shutdown();
-	
-	bool StartSound(const char *filename, const SoundFlags flags = SoundFlags::None);
-	bool StopSound(const char *filename);
-	bool IsPlaying(const char *filename);
-	
+
+	bool StartSound(const char* filename, const SoundFlags flags = SoundFlags::None);
+	bool StopSound(const char* filename);
+	bool IsPlaying(const char* filename);
+
 private:
 	bool LoadSound(const char* filename);
 

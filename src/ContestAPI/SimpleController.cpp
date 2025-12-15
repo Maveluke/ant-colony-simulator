@@ -38,15 +38,15 @@
 CControllerWindows::CControllerWindows()
 {
 	ZeroMemory(&m_state, sizeof(XINPUT_STATE));
-}	
+}
 
 bool CControllerWindows::CheckButton(const App::GamepadButton button, const bool onPress) const
 {
-	#define HANDLE_XNA_BUTTON(BUTTON, BUTTONCODE) \
+#define HANDLE_XNA_BUTTON(BUTTON, BUTTONCODE) \
 		case BUTTON: xnaButton = BUTTONCODE; break;
 
 	int xnaButton = 0;
-	switch(button)
+	switch (button)
 	{
 		HANDLE_XNA_BUTTON(App::BTN_A, XINPUT_GAMEPAD_A)
 		HANDLE_XNA_BUTTON(App::BTN_B, XINPUT_GAMEPAD_B)
@@ -107,7 +107,7 @@ float CControllerWindows::GetRightTrigger() const
 
 CControllerApple::CControllerApple()
 {
-}	
+}
 
 bool CControllerApple::CheckButton(const App::GamepadButton button, const bool onPress) const
 {
@@ -139,7 +139,7 @@ float CControllerApple::GetRightThumbStickY() const
 }
 float CControllerApple::GetLeftTrigger() const
 {
-	return m_state.m_leftTrigger / THUMB_STICK_MAX_RANGE; 
+	return m_state.m_leftTrigger / THUMB_STICK_MAX_RANGE;
 }
 float CControllerApple::GetRightTrigger() const
 {
@@ -152,7 +152,7 @@ float CControllerApple::GetRightTrigger() const
 //-----------------------------------------------------------------------------
 // Singleton
 //-----------------------------------------------------------------------------
-CSimpleControllers &CSimpleControllers::GetInstance()
+CSimpleControllers& CSimpleControllers::GetInstance()
 {
 	static CSimpleControllers theControllers;
 	return theControllers;
@@ -164,19 +164,19 @@ void CSimpleControllers::Update()
 {
 	DWORD dwResult;
 	int numControllers = 0;
-    for( DWORD i = 0; i < MAX_CONTROLLERS; i++ )
-    {
-        // Simply get the state of the controller from XInput.
-        dwResult = XInputGetState( i, &m_Controllers[i].m_state );
+	for (DWORD i = 0; i < MAX_CONTROLLERS; i++)
+	{
+		// Simply get the state of the controller from XInput.
+		dwResult = XInputGetState(i, &m_Controllers[i].m_state);
 
 		if (dwResult == ERROR_SUCCESS)
 		{
 			m_Controllers[i].m_bConnected = true;
 			numControllers++;
 		}
-        else
-            m_Controllers[i].m_bConnected = false;
-    }
+		else
+			m_Controllers[i].m_bConnected = false;
+	}
 
 	if (numControllers == 0)
 	{
@@ -187,7 +187,7 @@ void CSimpleControllers::Update()
 		m_Controllers[0].m_state.Gamepad.sThumbRX = 0;
 		m_Controllers[0].m_state.Gamepad.sThumbRY = 0;
 		m_Controllers[0].m_state.Gamepad.bLeftTrigger = 0;
-		m_Controllers[0].m_state.Gamepad.bRightTrigger = 0;		
+		m_Controllers[0].m_state.Gamepad.bRightTrigger = 0;
 
 		if (App::IsKeyPressed(APP_PAD_EMUL_LEFT_THUMB_LEFT)) m_Controllers[0].m_state.Gamepad.sThumbLX = -32767;
 		if (App::IsKeyPressed(APP_PAD_EMUL_LEFT_THUMB_RIGHT)) m_Controllers[0].m_state.Gamepad.sThumbLX = 32767;
@@ -195,7 +195,7 @@ void CSimpleControllers::Update()
 		if (App::IsKeyPressed(APP_PAD_EMUL_LEFT_THUMB_DOWN)) m_Controllers[0].m_state.Gamepad.sThumbLY = -32767;
 		if (App::IsKeyPressed(APP_PAD_EMUL_BUTTON_ALT_A)) buttons |= XINPUT_GAMEPAD_A;
 		if (App::IsKeyPressed(APP_PAD_EMUL_START)) buttons |= XINPUT_GAMEPAD_START;
-		
+
 		if (App::IsKeyPressed(APP_PAD_EMUL_RIGHT_THUMB_LEFT)) m_Controllers[0].m_state.Gamepad.sThumbRX = -32767;
 		if (App::IsKeyPressed(APP_PAD_EMUL_RIGHT_THUMB_RIGHT)) m_Controllers[0].m_state.Gamepad.sThumbRX = 32767;
 		if (App::IsKeyPressed(APP_PAD_EMUL_RIGHT_THUMB_UP)) m_Controllers[0].m_state.Gamepad.sThumbRY = -32767;
@@ -229,7 +229,7 @@ void CSimpleControllers::Update()
 		if (m_Controllers[i].m_bConnected)
 		{
 #ifdef UPDATE_DZONE					
-			m_Controllers[i].m_debouncedButtons = ~m_Controllers[i].m_lastButtons &m_Controllers[i].m_state.Gamepad.wButtons;
+			m_Controllers[i].m_debouncedButtons = ~m_Controllers[i].m_lastButtons & m_Controllers[i].m_state.Gamepad.wButtons;
 			m_Controllers[i].m_lastButtons = m_Controllers[i].m_state.Gamepad.wButtons;
 
 			// Zero value if thumbsticks are within the dead zone 
@@ -259,9 +259,9 @@ void CSimpleControllers::Update()
 void CSimpleControllers::Update()
 {
 	bool hasControllers = SDL_HasGamepad();
-	
+
 	// No controllers so lets fake one using keyboard defines.
-	if (!hasControllers )
+	if (!hasControllers)
 	{
 		m_Controllers[0].m_state.m_lastButtons = m_Controllers[0].m_state.m_buttons;
 
@@ -273,7 +273,7 @@ void CSimpleControllers::Update()
 		m_Controllers[0].m_state.m_leftStickX = 0;
 		m_Controllers[0].m_state.m_leftTrigger = 0;
 		m_Controllers[0].m_state.m_rightTrigger = 0;
-		
+
 		int buttons = 0;
 
 		if (App::IsKeyPressed(APP_PAD_EMUL_LEFT_THUMB_LEFT)) m_Controllers[0].m_state.m_leftStickX = -32767;
@@ -283,7 +283,7 @@ void CSimpleControllers::Update()
 
 		//if (App::IsKeyPressed(APP_PAD_EMUL_BUTTON_ALT_A)) buttons |= App:BTN_BACK;
 		if (App::IsKeyPressed(APP_PAD_EMUL_START)) buttons |= App::BTN_START;
-		
+
 		if (App::IsKeyPressed(APP_PAD_EMUL_RIGHT_THUMB_LEFT)) m_Controllers[0].m_state.m_rightStickX = -32767;
 		if (App::IsKeyPressed(APP_PAD_EMUL_RIGHT_THUMB_RIGHT)) m_Controllers[0].m_state.m_rightStickX = 32767;
 		if (App::IsKeyPressed(APP_PAD_EMUL_RIGHT_THUMB_UP)) m_Controllers[0].m_state.m_rightStickY = -32767;
@@ -314,7 +314,7 @@ void CSimpleControllers::Update()
 	else
 	{
 		int count;
-		SDL_JoystickID * gamepads = SDL_GetGamepads(&count);
+		SDL_JoystickID* gamepads = SDL_GetGamepads(&count);
 
 		//Reset all controllers, move button & last button forward
 		for (int i = 0; i < MAX_CONTROLLERS; i++)
@@ -327,7 +327,7 @@ void CSimpleControllers::Update()
 		count = std::min(count, MAX_CONTROLLERS);
 		for (int pad = 0; pad < count; pad++)
 		{
-			SDL_Gamepad * gamepad = SDL_OpenGamepad(gamepads[pad]);
+			SDL_Gamepad* gamepad = SDL_OpenGamepad(gamepads[pad]);
 
 			if (gamepad == nullptr)
 			{
@@ -341,11 +341,11 @@ void CSimpleControllers::Update()
 
 			//Converts SDL Joystick axis to App Axis
 #define HANDLE_AXIS(STATE_MEMBER, SDL_AXIS) \
-	m_Controllers[pad].m_state. STATE_MEMBER = SDL_GetGamepadAxis(gamepad, SDL_AXIS);
+			m_Controllers[pad].m_state. STATE_MEMBER = SDL_GetGamepadAxis(gamepad, SDL_AXIS);
 
 			//Converts SDL Button to App Button
 #define HANDLE_BUTTON(SDL_BUTTON, BUTTON) \
-	if (SDL_GetGamepadButton(gamepad, SDL_BUTTON)) { buttons |= BUTTON; }
+			if (SDL_GetGamepadButton(gamepad, SDL_BUTTON)) { buttons |= BUTTON; }
 
 			HANDLE_AXIS(m_leftStickX, SDL_GAMEPAD_AXIS_LEFTX)
 			HANDLE_AXIS(m_leftStickY, SDL_GAMEPAD_AXIS_LEFTY)
@@ -376,13 +376,13 @@ void CSimpleControllers::Update()
 
 			SDL_CloseGamepad(gamepad);
 		}
-		
+
 		//Some Useful Controller Debug Code that outputs the controller state each frame
 		// for (int i = 0; i < MAX_CONTROLLERS; i++)
 		// {
 		// 	std::cout << "Gamepad " << i;
 		// 	std::cout << " Connected: " << m_Controllers[i].m_bConnected;
-			
+
 		// 	if (m_Controllers[i].m_bConnected)
 		// 	{
 		// 		std::cout << "LeftStick: (" << m_Controllers[i].m_state.m_leftStickX << ", "<< m_Controllers[i].m_state.m_leftStickY << ")";

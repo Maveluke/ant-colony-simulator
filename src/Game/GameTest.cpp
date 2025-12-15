@@ -49,32 +49,37 @@ void Init() {
 // Update your simulation here. deltaTime is the elapsed time since the last update in ms.
 // This will be called at no greater frequency than the value of APP_MAX_FRAME_RATE
 //------------------------------------------------------------------------
-void Update(const float deltaTime) {
+void Update(const float deltaTime)
+{
 	//------------------------------------------------------------------------
 	// Example Sprite Code....
 	testSprite->Update(deltaTime);
-	if (App::GetController().GetLeftThumbStickX() > 0.5f) {
+	if (App::GetController().GetLeftThumbStickX() > 0.5f)
+	{
 		testSprite->SetAnimation(ANIM_RIGHT);
 		float x, y;
 		testSprite->GetPosition(x, y);
 		x += 1.0f;
 		testSprite->SetPosition(x, y);
 	}
-	if (App::GetController().GetLeftThumbStickX() < -0.5f) {
+	if (App::GetController().GetLeftThumbStickX() < -0.5f)
+	{
 		testSprite->SetAnimation(ANIM_LEFT);
 		float x, y;
 		testSprite->GetPosition(x, y);
 		x -= 1.0f;
 		testSprite->SetPosition(x, y);
 	}
-	if (App::GetController().GetLeftThumbStickY() > 0.5f) {
+	if (App::GetController().GetLeftThumbStickY() > 0.5f)
+	{
 		testSprite->SetAnimation(ANIM_FORWARDS);
 		float x, y;
 		testSprite->GetPosition(x, y);
 		y += 1.0f;
 		testSprite->SetPosition(x, y);
 	}
-	if (App::GetController().GetLeftThumbStickY() < -0.5f) {
+	if (App::GetController().GetLeftThumbStickY() < -0.5f)
+	{
 		testSprite->SetAnimation(ANIM_BACKWARDS);
 		float x, y;
 		testSprite->GetPosition(x, y);
@@ -82,28 +87,35 @@ void Update(const float deltaTime) {
 		testSprite->SetPosition(x, y);
 	}
 
-	if (App::GetController().CheckButton(App::BTN_DPAD_UP, false)) {
+	if (App::GetController().CheckButton(App::BTN_DPAD_UP, false))
+	{
 		testSprite->SetScale(testSprite->GetScale() + 0.1f);
 	}
-	if (App::GetController().CheckButton(App::BTN_DPAD_DOWN, false)) {
+	if (App::GetController().CheckButton(App::BTN_DPAD_DOWN, false))
+	{
 		testSprite->SetScale(testSprite->GetScale() - 0.1f);
 	}
-	if (App::GetController().CheckButton(App::BTN_DPAD_LEFT, false)) {
+	if (App::GetController().CheckButton(App::BTN_DPAD_LEFT, false))
+	{
 		testSprite->SetAngle(testSprite->GetAngle() + 0.1f);
 	}
-	if (App::GetController().CheckButton(App::BTN_DPAD_RIGHT, false)) {
+	if (App::GetController().CheckButton(App::BTN_DPAD_RIGHT, false))
+	{
 		testSprite->SetAngle(testSprite->GetAngle() - 0.1f);
 	}
-	if (App::GetController().CheckButton(App::BTN_A, true)) {
+	if (App::GetController().CheckButton(App::BTN_A, true))
+	{
 		testSprite->SetAnimation(-1);
 	}
 	//------------------------------------------------------------------------
 	// Sample Sound.
 	//------------------------------------------------------------------------
-	if (App::GetController().CheckButton(App::BTN_B, true)) {
+	if (App::GetController().CheckButton(App::BTN_B, true))
+	{
 		App::PlayAudio("./Data/TestData/Test.wav", true);
 	}
-	if (App::GetController().CheckButton(App::BTN_X, true)) {
+	if (App::GetController().CheckButton(App::BTN_X, true))
+	{
 		App::StopAudio("./Data/TestData/Test.wav");
 	}
 }
@@ -112,7 +124,8 @@ void Update(const float deltaTime) {
 // Add your display calls here (DrawLine,Print, DrawSprite.) 
 // See App.h 
 //------------------------------------------------------------------------
-void Render() {
+void Render()
+{
 	//------------------------------------------------------------------------
 	// Example Sprite Code....
 	testSprite->Draw();
@@ -131,7 +144,8 @@ void Render() {
 	float g = 1.0f;
 	float b = 1.0f;
 	a += 0.1f;
-	for (int i = 0; i < 20; i++) {
+	for (int i = 0; i < 20; i++)
+	{
 
 		const float sx = 200 + sinf(a + i * 0.1f) * 60.0f;
 		const float sy = 200 + cosf(a + i * 0.1f) * 60.0f;
@@ -145,14 +159,16 @@ void Render() {
 	//------------------------------------------------------------------------
 	// Example Triangle Drawing.
 	//------------------------------------------------------------------------
-	App::DrawTriangle(600.0f, 300.0f, 650.0f, 400.0f, 700.0f, 300.0f, 0.0f, 1.0f, 1.0f);
-	App::DrawTriangle(800.0f, 300.0f, 850.0f, 400.0f, 900.0f, 300.0f, 0.0f, 1.0f, 1.0f, true);
+	App::DrawTriangle(600.0f, 300.0f, -1, 1, 650.0f, 400.0f, 0, 1, 700.0f, 300.0f, 0, 1, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f);
+	App::DrawTriangle(500.0f, 300.0f, 0, 1, 550.0f, 450.0f, 0.5, 1, 700.0f, 340.0f, -0.5, 1, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f);
+	App::DrawTriangle(800.0f, 300.0f, 0, 1, 850.0f, 400.0f, 0, 1, 900.0f, 300.0f, 0, 1, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, 1.0f, true);
 }
 //------------------------------------------------------------------------
 // Add your shutdown code here. Called when the APP_QUIT_KEY is pressed.
 // Just before the app exits.
 //------------------------------------------------------------------------
-void Shutdown() {
+void Shutdown()
+{
 	//------------------------------------------------------------------------
 	// Example Sprite Code....
 	delete testSprite;

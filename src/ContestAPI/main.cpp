@@ -98,7 +98,7 @@ void InitGL()
 //---------------------------------------------------------------------------------
 void Display()
 {
-	glClear(GL_COLOR_BUFFER_BIT);   // Clear the color buffer with current clearing color
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);   // Clear the color buffer with current clearing color
 
 	gUserRenderProfiler.Start();	
 	Render();						// Call user defined render.
@@ -230,7 +230,7 @@ namespace Internal
 
 	bool IsMousePressed(int button)
 	{
-		return gMouseButtonState[button] = GLUT_DOWN;
+		return gMouseButtonState[button] == GLUT_DOWN;
 	}
 
 }
