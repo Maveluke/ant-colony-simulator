@@ -1,0 +1,16 @@
+.vs/
+build/
+out/
+data/
+
+
+# src/ContestAPI
+
+# root files
+API-Instructions.pdf
+CMakeLists.txt
+generate-macos.sh
+generate-windows.bat
+TC-apple.cmake
+TC-windows.cmake
+
