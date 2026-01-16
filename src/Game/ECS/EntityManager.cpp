@@ -38,8 +38,8 @@ bool EntityManager::DeleteEntity(Entity entity) {
 }
 
 // CRUD Component
-bool EntityManager::HasComponent(ComponentType componentType, Entity entity) {
-	return m_entityPool.HasComponent(componentType, entity);
+bool EntityManager::HasComponents(uint32_t componentMask, Entity entity) {
+	return m_entityPool.HasComponents(componentMask, entity);
 }
 
 bool EntityManager::AddComponent(ComponentType componentType, Entity entity) {

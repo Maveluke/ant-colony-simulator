@@ -1,27 +1,21 @@
 #include "GameEngine.h"
-#include "DrawUtils.h"
 
 GameEngine::GameEngine() {
   running = true;
-  userButtonStates.fill(ButtonState{});
+  userButtonStates.fill(MaveLib::ButtonState{});
 }
 
 GameEngine::~GameEngine() {
 }
 
-GameEngine& GameEngine::Instance() {
-  static GameEngine instance;
-  return instance;
-}
-
 void GameEngine::GameSceneInitialize() {
   scenes["Play"] = std::make_unique<MaveLib::ScenePlay>();
   currentSceneSTR = "Play";
+  CurrentScene().SLoadLevel();
 }
 
 void GameEngine::Init() {
   GameEngine::GameSceneInitialize();
-
 }
 
 MaveLib::Scene& GameEngine::CurrentScene() {
@@ -30,10 +24,11 @@ MaveLib::Scene& GameEngine::CurrentScene() {
 
 void GameEngine::ChangeScene(const std::string& nextSceneSTR) {
   currentSceneSTR = nextSceneSTR;
+  CurrentScene().SLoadLevel();
 }
 
 void GameEngine::SUserInputHandler() {
-  constexpr int appButtons[BTN_COUNT] = {
+  constexpr int appButtons[MaveLib::Button::BTN_COUNT] = {
         App::BTN_A,
         App::BTN_B,
         App::BTN_X,
@@ -51,9 +46,9 @@ void GameEngine::SUserInputHandler() {
   };
   const auto& controller = App::GetController();
 
-  for (size_t i = 0; i < BTN_COUNT; ++i) {
+  for (size_t i = 0; i < MaveLib::Button::BTN_COUNT; ++i) {
     bool isHeld = controller.CheckButton(static_cast<App::GamepadButton>(appButtons[i]), false);
-    ButtonState& btnState = userButtonStates[i];
+    MaveLib::ButtonState& btnState = userButtonStates[i];
 
     btnState.pressed = isHeld && !btnState.held;
     btnState.released = !isHeld && btnState.held;
@@ -68,6 +63,7 @@ void GameEngine::SUserInputHandler() {
 
 void GameEngine::Update(const float deltaTime) {
   SUserInputHandler();
+  CurrentScene().SProcessInput(userButtonStates, leftStickState, rightStickState, leftTriggerState, rightTriggerState);
   CurrentScene().Update(deltaTime);
 }
 

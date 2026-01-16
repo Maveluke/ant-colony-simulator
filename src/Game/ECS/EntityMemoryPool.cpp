@@ -61,9 +61,7 @@ std::vector<Entity> EntityMemoryPool::GetEntitiesWithComponents(uint32_t compone
 	std::vector<Entity> ret;
 	ret.reserve(m_numEntities);
 	for (Entity i = 0; i < m_active.size(); i++) {
-		// printf("Entity %zu: active=%d, bitmask=%u, checking for %u\n", i, m_active[i], m_componentBitmask[i], componentMask);
 		if (m_active[i] && (m_componentBitmask[i] & componentMask) == componentMask) {
-			// printf("  -> matched!\n");
 			ret.push_back(i);
 		}
 	}
@@ -78,18 +76,18 @@ bool EntityMemoryPool::DeleteEntity(Entity entity) {
 }
 
 // Component CRUD
-bool EntityMemoryPool::HasComponent(ComponentType componentType, Entity entity) {
-	return (m_componentBitmask[entity] & componentType) != 0;
+bool EntityMemoryPool::HasComponents(uint32_t componentMask, Entity entity) {
+	return (m_componentBitmask[entity] & componentMask) == componentMask;
 }
 
 bool EntityMemoryPool::AddComponent(ComponentType componentType, Entity entity) {
-	if (HasComponent(componentType, entity)) return false;
+	if (HasComponents(componentType, entity)) return false;
 	m_componentBitmask[entity] |= componentType;
 	return true;
 }
 
 bool EntityMemoryPool::RemoveComponent(ComponentType componentType, Entity entity) {
-	if (!HasComponent(componentType, entity)) return false;
+	if (!HasComponents(componentType, entity)) return false;
 	m_componentBitmask[entity] &= ~componentType;
 	return true;
 }

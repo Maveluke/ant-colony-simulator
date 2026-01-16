@@ -16,6 +16,7 @@ enum ComponentType {
 struct CPlayer {
 	int score = 0;
 	bool isLeftPlayer = true;
+	float moveInput = 0.0f;
 };
 
 

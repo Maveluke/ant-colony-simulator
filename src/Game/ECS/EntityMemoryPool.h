@@ -43,7 +43,7 @@ private:
 	bool DeleteEntity(Entity entity);
 
 	// Component CRUD
-	bool HasComponent(ComponentType componentType, Entity entity);
+	bool HasComponents(uint32_t componentMask, Entity entity);
 	bool AddComponent(ComponentType componentType, Entity entity);
 	bool RemoveComponent(ComponentType componentType, Entity entity);
 

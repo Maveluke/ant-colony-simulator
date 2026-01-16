@@ -3,46 +3,21 @@
 #include <array>
 
 #include "../ContestAPI/app.h"
-#include "Scene.h"
-#include "ScenePlay.h"
-
-enum Button {
-  BTN_A,
-  BTN_B,
-  BTN_X,
-  BTN_Y,
-
-  BTN_START,
-  BTN_BACK,
-
-  BTN_LBUMPER,
-  BTN_LSTICK,
-  BTN_RBUMPER,
-  BTN_RSTICK,
-
-  BTN_DPAD_LEFT,
-  BTN_DPAD_RIGHT,
-  BTN_DPAD_UP,
-  BTN_DPAD_DOWN,
-  BTN_COUNT
-};
-
-struct ButtonState {
-  bool pressed = false;
-  bool held = false;
-  bool released = false;
-};
+#include "ECS/scenes/Scene.h"
+#include "ECS/scenes/ScenePlay.h"
+#include "graphics/RenderSystem.h"
+#include "Input.h"
 
 class GameEngine {
 private:
-  GameEngine();
-  ~GameEngine();
 
   std::map<std::string, std::unique_ptr<MaveLib::Scene>> scenes;
   std::string currentSceneSTR;
   bool running;
 
-  std::array<ButtonState, BTN_COUNT> userButtonStates;
+  MaveLib::RenderSystem renderSystem;
+
+  std::array<MaveLib::ButtonState, MaveLib::Button::BTN_COUNT> userButtonStates;
   Vec2 leftStickState = Vec2{};
   Vec2 rightStickState = Vec2{};
   float leftTriggerState = 0.0f;
@@ -53,7 +28,8 @@ private:
   void ChangeScene(const std::string& nextSceneSTR);
 
 public:
-  static GameEngine& Instance();
+  GameEngine();
+  ~GameEngine();
 
   void SUserInputHandler();
   void GameSceneInitialize();
