@@ -18,6 +18,7 @@ private:
   MaveLib::RenderSystem renderSystem;
 
   std::array<MaveLib::ButtonState, MaveLib::Button::BTN_COUNT> userButtonStates;
+  std::array<MaveLib::MouseButtonState, MaveLib::MouseButton::MOUSE_BUTTON_COUNT> userMouseButtonStates;
   Vec2 leftStickState = Vec2{};
   Vec2 rightStickState = Vec2{};
   float leftTriggerState = 0.0f;

@@ -26,4 +26,18 @@ namespace MaveLib {
     bool held = false;
     bool released = false;
   };
+
+  enum MouseButton {
+    BUTTON_LEFT,
+    BUTTON_RIGHT,
+    BUTTON_MIDDLE,
+    MOUSE_BUTTON_COUNT
+  };
+
+  struct MouseButtonState {
+    bool pressed = false;
+    bool held = false;
+    bool released = false;
+    Vec2 position;
+  };
 }

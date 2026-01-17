@@ -11,3 +11,9 @@ struct Action {
   std::string name;
   ActionType type;
 };
+
+struct MouseAction {
+  std::string name;
+  ActionType type;
+  Vec2 position;
+};

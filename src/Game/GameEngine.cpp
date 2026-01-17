@@ -3,6 +3,7 @@
 GameEngine::GameEngine() {
   running = true;
   userButtonStates.fill(MaveLib::ButtonState{});
+  userMouseButtonStates.fill(MaveLib::MouseButtonState{});
 }
 
 GameEngine::~GameEngine() {
@@ -55,6 +56,20 @@ void GameEngine::SUserInputHandler() {
     btnState.held = isHeld;
   }
 
+  for (size_t i = 0; i < MaveLib::MouseButton::MOUSE_BUTTON_COUNT; ++i) {
+    bool isHeld = App::IsMousePressed(i);
+    Vec2 mousePos;
+    App::GetMousePos(mousePos.x, mousePos.y);
+    mousePos.y = APP_VIRTUAL_HEIGHT - mousePos.y;
+
+    MaveLib::MouseButtonState& btnState = userMouseButtonStates[i];
+
+    btnState.pressed = isHeld && !btnState.held;
+    btnState.released = !isHeld && btnState.held;
+    btnState.held = isHeld;
+    btnState.position = mousePos;
+  }
+
   leftStickState = Vec2(controller.GetLeftThumbStickX(), controller.GetLeftThumbStickY());
   rightStickState = Vec2(controller.GetRightThumbStickX(), controller.GetRightThumbStickY());
   leftTriggerState = controller.GetLeftTrigger();
@@ -63,8 +78,8 @@ void GameEngine::SUserInputHandler() {
 
 void GameEngine::Update(const float deltaTime) {
   SUserInputHandler();
-  CurrentScene().SProcessInput(userButtonStates, leftStickState, rightStickState, leftTriggerState, rightTriggerState);
-  CurrentScene().Update(deltaTime);
+  CurrentScene().SProcessInput(userButtonStates, userMouseButtonStates, leftStickState, rightStickState, leftTriggerState, rightTriggerState);
+  CurrentScene().Update(deltaTime / 1000.0f); // Convert ms to seconds
 }
 
 void GameEngine::Render() {
