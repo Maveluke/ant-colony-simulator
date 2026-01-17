@@ -53,8 +53,8 @@ enum class AntState {
 
 struct CAnt {
   AntState state = AntState::WANDER;
-  float wanderAngle = 0.0f;         // Angle for wandering behavior
-  float wanderTimer = 0.0f;         // Timer for wandering behavior
+  Vec2 direction = Vec2(0.0f, 0.0f);
+  float wanderTimer = 0.0f;                 // Timer for wandering behavior before changing direction
   float speed = 50.0f;
   bool carryingFood = false;
   Entity targetFood = 0;
