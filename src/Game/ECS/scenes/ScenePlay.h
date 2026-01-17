@@ -1,5 +1,6 @@
 #pragma once
 #include "ECS/scenes/Scene.h"
+#include "../systems/SpatialGrid.h"
 #include "DrawUtils.h"
 
 namespace MaveLib {
@@ -10,21 +11,16 @@ namespace MaveLib {
   */
   class ScenePlay : public MaveLib::Scene {
   public:
-    int p1Score = 0;
-    int p2Score = 0;
-    Entity p1Entity = -1;
-    Entity p2Entity = -1;
-    Entity ballEntity = -1;
+    SpatialGrid spatialGrid;
 
-    ScenePlay() = default;
+    ScenePlay();
     virtual ~ScenePlay() = default;
 
     void SLoadLevel() override;
     void Update(float deltaTime) override;
     void Render() override;
-    void DoAction(const Action& action) override;
-    void OnAnalogInput(const Vec2& leftStick, const Vec2& rightStick, float leftTrigger, float rightTrigger) override;
-    void SCheckGoal();
-    void SMovement();
+    // void DoAction(const Action& action) override;
+    void DoAction(const MouseAction& action) override;
+    // void OnAnalogInput(const Vec2& leftStick, const Vec2& rightStick, float leftTrigger, float rightTrigger) override;
   };
 }
