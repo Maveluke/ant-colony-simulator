@@ -81,6 +81,51 @@ namespace AntSystem {
     }
   }
 
+  // Handle FLEE state - run away from spider
+  static void UpdateFlee(Entity e, EntityManager& em, SpatialGrid& grid,
+    PheromoneGrid& pheromones, float deltaTime) {
+    auto& ant = em.GetComponent<CAnt>(e);
+    auto& transform = em.GetComponent<CTransform>(e);
+    auto& wander = em.GetComponent<CWander>(e);
+    auto& speed = em.GetComponent<CSpeed>(e);
+    auto& detection = em.GetComponent<CDetection>(e);
+
+    // Look for nearby spider
+    Entity spider = grid.QueryNearest(transform.position, detection.radius,
+      SPIDER | TRANSFORM, em);
+
+    if (spider != INVALID_ENTITY) {
+      // Deposit ALARM pheromone to alert nearby ants
+      pheromones.DepositRadius(PHEROMONE_ALARM, transform.position,
+        ALARM_DEPOSIT_RADIUS, ALARM_DEPOSIT_AMOUNT);
+
+      // Check alarm intensity - should we fight back?
+      float alarmIntensity = pheromones.GetIntensity(PHEROMONE_ALARM, transform.position);
+      if (alarmIntensity >= ALARM_ATTACK_THRESHOLD) {
+        // Swarm detected! Switch to attack
+        ant.state = AntState::ATTACK;
+        return;
+      }
+
+      // Not enough backup - keep fleeing
+      Vec2 spiderPos = em.GetComponent<CTransform>(spider).position;
+      Vec2 awayFromSpider = transform.position - spiderPos;
+      float dist = awayFromSpider.Length();
+
+      if (dist > 0.001f) {
+        wander.direction = awayFromSpider / dist;
+      }
+
+      // Flee faster!
+      transform.velocity = wander.direction * speed.value * 1.5f;
+    }
+    else {
+      // No spider nearby, go back to wandering
+      ant.state = AntState::WANDER;
+      // WanderSystem will handle velocity
+    }
+  }
+
 
   void Update(EntityManager& em, SpatialGrid& grid, PheromoneGrid& pheromones,
     float deltaTime) {
@@ -109,6 +154,7 @@ namespace AntSystem {
           break;
 
         case AntState::FLEE:
+          UpdateFlee(e, em, grid, pheromones, deltaTime);
           break;
 
         case AntState::ATTACK:
