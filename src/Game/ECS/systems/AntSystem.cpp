@@ -197,4 +197,114 @@ namespace AntSystem {
       }
     }
   }
+
+  void HandleCollisions(EntityManager& em, EventBuffer& events) {
+    // Handle Ant <-> Food collisions (start dragging)
+    for (const auto& collision : events.Get<AntFoodCollision>()) {
+      Entity ant = collision.ant;
+      Entity food = collision.food;
+
+      // Verify entities still exist and ant is in WANDER state
+      if (!em.HasComponents(ANT | TRANSFORM | DRAGGING, ant)) continue;
+      if (!em.HasComponents(FOOD | DRAGGABLE, food)) continue;
+
+      auto& antComp = em.GetComponent<CAnt>(ant);
+      auto& dragging = em.GetComponent<CDragging>(ant);
+
+      // Only pick up if wandering and not already dragging
+      if (antComp.state != AntState::WANDER) continue;
+      if (dragging.target != INVALID_ENTITY) continue;
+
+      // Try to start dragging
+      if (DragSystem::StartDragging(em, ant, food)) {
+        // Clear target
+        if (em.HasComponents(TARGET, ant)) {
+          em.GetComponent<CTarget>(ant).entity = INVALID_ENTITY;
+        }
+
+        // Transition to FORAGE state
+        antComp.state = AntState::FORAGE;
+      }
+    }
+
+    // Handle Food <-> Colony collisions (deposit food)
+    for (const auto& collision : events.Get<FoodColonyCollision>()) {
+      Entity food = collision.food;
+      Entity colony = collision.colony;
+
+      // Verify entities exist
+      if (!em.HasComponents(FOOD | DRAGGABLE, food)) continue;
+      if (!em.HasComponents(COLONY, colony)) continue;
+
+      auto& foodComp = em.GetComponent<CFood>(food);
+      auto& draggable = em.GetComponent<CDraggable>(food);
+      auto& colonyComp = em.GetComponent<CColony>(colony);
+
+      // Transfer food to colony
+      colonyComp.storedFood += foodComp.amount;
+
+      // Stop all draggers and set them back to wander
+      for (int i = 0; i < draggable.draggerCount; i++) {
+        Entity dragger = draggable.draggers[i];
+        if (!em.HasComponents(ANT | DRAGGING, dragger)) continue;
+
+        auto& draggerDragging = em.GetComponent<CDragging>(dragger);
+        draggerDragging.target = INVALID_ENTITY;
+
+        auto& antComp = em.GetComponent<CAnt>(dragger);
+        antComp.state = AntState::WANDER;
+      }
+
+      // Delete food
+      em.DeleteEntity(food);
+    }
+
+    // Handle Ant <-> Spider collisions
+    for (const auto& collision : events.Get<AntSpiderCollision>()) {
+      Entity ant = collision.ant;
+      Entity spider = collision.spider;
+
+      // Verify entities exist
+      if (!em.HasComponents(ANT | HEALTH | COMBAT, ant)) continue;
+      if (!em.HasComponents(SPIDER | HEALTH | COMBAT, spider)) continue;
+
+      auto& antComp = em.GetComponent<CAnt>(ant);
+      auto& antHealth = em.GetComponent<CHealth>(ant);
+      auto& antCombat = em.GetComponent<CCombat>(ant);
+      auto& spiderHealth = em.GetComponent<CHealth>(spider);
+      auto& spiderCombat = em.GetComponent<CCombat>(spider);
+
+      // Spider deals damage to ant (if attack cooldown ready)
+      if (spiderCombat.attackTimer <= 0.0f) {
+        antHealth.current -= spiderCombat.attackDamage;
+        spiderCombat.attackTimer = spiderCombat.attackCooldown;
+
+        // Ant dies if health depleted
+        if (antHealth.current <= 0.0f) {
+          em.DeleteEntity(ant);
+          continue;
+        }
+      }
+
+      // Ant fights back if in ATTACK state
+      if (antComp.state == AntState::ATTACK) {
+        if (antCombat.attackTimer <= 0.0f) {
+          spiderHealth.current -= antCombat.attackDamage;
+          antCombat.attackTimer = antCombat.attackCooldown;
+
+          // Spider dies if health depleted
+          if (spiderHealth.current <= 0.0f) {
+            em.DeleteEntity(spider);
+            continue;
+          }
+        }
+      }
+
+      // Surviving ants that aren't already in combat enter FLEE state
+      // (They'll switch to ATTACK if alarm pheromone is high enough)
+      if (antComp.state != AntState::FLEE && antComp.state != AntState::ATTACK) {
+        antComp.state = AntState::FLEE;
+      }
+    }
+  }
 }
