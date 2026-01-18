@@ -48,8 +48,10 @@ namespace CollisionSystem {
     for (Entity ant : ants) {
       auto& antTransform = em.GetComponent<CTransform>(ant);
       auto& antCollider = em.GetComponent<CCircleCollider>(ant);
+      auto& antDetection = em.GetComponent<CDetection>(ant);
 
-      auto nearby = grid.Query(antTransform.position, antCollider.radius + 20.0f);
+      // Query nearby food using spatial grid
+      auto nearby = grid.Query(antTransform.position, antDetection.radius);
 
       for (Entity other : nearby) {
         // Check if it's food
@@ -80,6 +82,23 @@ namespace CollisionSystem {
         if (CircleBoxOverlap(antTransform.position, antCollider.radius,
           colonyTransform.position, halfSize)) {
           events.Push(AntColonyCollision{ ant, colony });
+        }
+      }
+    }
+
+    // Food <-> Colony collisions
+    for (Entity food : foods) {
+      auto& foodTransform = em.GetComponent<CTransform>(food);
+      auto& foodCollider = em.GetComponent<CCircleCollider>(food);
+
+      for (Entity colony : colonies) {
+        auto& colonyTransform = em.GetComponent<CTransform>(colony);
+        auto& colonyRenderer = em.GetComponent<CQuadRenderer>(colony);
+        Vec2 halfSize = colonyRenderer.size * 0.5f;
+
+        if (CircleBoxOverlap(foodTransform.position, foodCollider.radius,
+          colonyTransform.position, halfSize)) {
+          events.Push(FoodColonyCollision{ food, colony });
         }
       }
     }
