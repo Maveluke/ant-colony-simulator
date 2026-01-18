@@ -1,37 +1,38 @@
 #include "MovementSystem.h"
+#include "../Components.h"
 
 namespace MovementSystem {
-  bool Update(CTransform& transform, float deltaTime,
+
+  void Update(EntityManager& em, float deltaTime,
     float worldWidth, float worldHeight) {
-    // Apply velocity to position
-    transform.position = transform.position + transform.velocity * deltaTime;
 
-    // Bounce off boundaries
-    bool bounced = false;
+    auto entities = em.GetEntitiesWithComponents(TRANSFORM);
 
-    if (transform.position.x < 0.0f) {
-      transform.position.x = 0.0f;
-      transform.velocity.x = -transform.velocity.x;
-      bounced = true;
-    }
-    else if (transform.position.x > worldWidth) {
-      transform.position.x = worldWidth;
-      transform.velocity.x = -transform.velocity.x;
-      bounced = true;
-    }
+    for (Entity e : entities) {
+      auto& transform = em.GetComponent<CTransform>(e);
 
-    if (transform.position.y < 0.0f) {
-      transform.position.y = 0.0f;
-      transform.velocity.y = -transform.velocity.y;
-      bounced = true;
-    }
-    else if (transform.position.y > worldHeight) {
-      transform.position.y = worldHeight;
-      transform.velocity.y = -transform.velocity.y;
-      bounced = true;
-    }
+      // Apply velocity to position
+      transform.position += transform.velocity * deltaTime;
 
-    return bounced;
+      // Bounce off boundaries
+      if (transform.position.x < 0.0f) {
+        transform.position.x = 0.0f;
+        transform.velocity.x = -transform.velocity.x;
+      }
+      else if (transform.position.x > worldWidth) {
+        transform.position.x = worldWidth;
+        transform.velocity.x = -transform.velocity.x;
+      }
+
+      if (transform.position.y < 0.0f) {
+        transform.position.y = 0.0f;
+        transform.velocity.y = -transform.velocity.y;
+      }
+      else if (transform.position.y > worldHeight) {
+        transform.position.y = worldHeight;
+        transform.velocity.y = -transform.velocity.y;
+      }
+    }
   }
 
 }

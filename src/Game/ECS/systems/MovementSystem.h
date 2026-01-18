@@ -1,9 +1,9 @@
 #pragma once
-#include "../Components.h"
+#include "../EntityManager.h"
 
 namespace MovementSystem {
-  // Update entity position based on velocity
-  // Returns true if entity bounced off a wall
-  bool Update(CTransform& transform, float deltaTime,
+  // Update all entities with TRANSFORM component
+  // Applies velocity to position and handles boundary bounce
+  void Update(EntityManager& em, float deltaTime,
     float worldWidth, float worldHeight);
 }
