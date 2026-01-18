@@ -1,10 +1,33 @@
 #include "SpawnUtils.h"
+#include "SpatialGrid.h"
 #include "../Components.h"
-#include "../Definition.h"
+#include "../Constants.h"
 #include <cstdlib>
 #include <cmath>
+#include <algorithm>
 
 namespace SpawnUtils {
+
+  // Helper: Random float between min and max
+  static float RandomFloat(float min, float max) {
+    return min + (rand() / (float)RAND_MAX) * (max - min);
+  }
+
+  // Helper: Calculate max draggers based on food amount
+  static int CalculateMaxDraggers(float foodAmount) {
+    int draggers = static_cast<int>(foodAmount / 50.0f) + 1;
+    return std::clamp(draggers, 1, MAX_DRAGGERS);
+  }
+
+  // Helper: Calculate weight based on food amount
+  static float CalculateWeight(float foodAmount) {
+    return 1.0f + (foodAmount / 50.0f);
+  }
+
+  // Helper: Calculate visual radius based on food amount
+  static float CalculateFoodRadius(float foodAmount) {
+    return 8.0f + std::min(foodAmount / 100.0f, 1.0f) * 12.0f;  // 8-20 radius
+  }
 
   Entity SpawnAnt(EntityManager& em, const Vec2& position) {
     Entity e = em.AddEntityImmediate("ant");
@@ -15,37 +38,58 @@ namespace SpawnUtils {
     transform.position = position;
     transform.velocity = Vec2(0.0f, 0.0f);
 
-    // Ant behavior
+    // Collider (small)
+    em.AddComponent(CIRCLE_COLLIDER, e);
+    auto& collider = em.GetComponent<CCircleCollider>(e);
+    collider.radius = 3.0f;
+
+    // Ant marker
     em.AddComponent(ANT, e);
     auto& ant = em.GetComponent<CAnt>(e);
     ant.state = AntState::WANDER;
-    // Random initial direction
-    float angle = (rand() / (float)RAND_MAX) * TWO_PI;
-    ant.direction = Vec2(cos(angle), sin(angle));
-    ant.wanderTimer = 0.0f;
-    ant.speed = 50.0f;
-    ant.carryingFood = false;
-    ant.targetFood = 0;
 
-    // Health (ants are fragile)
+    // Wander behavior
+    em.AddComponent(WANDER, e);
+    auto& wander = em.GetComponent<CWander>(e);
+    float angle = RandomFloat(0.0f, TWO_PI);
+    wander.direction = Vec2(cos(angle), sin(angle));
+    wander.timer = 0.0f;
+
+    // Speed
+    em.AddComponent(SPEED, e);
+    auto& speed = em.GetComponent<CSpeed>(e);
+    speed.value = 50.0f;
+
+    // Detection
+    em.AddComponent(DETECTION, e);
+    auto& detection = em.GetComponent<CDetection>(e);
+    detection.radius = 100.0f;
+
+    // Target (initially none)
+    em.AddComponent(TARGET, e);
+
+    // Dragging (initially nothing)
+    em.AddComponent(DRAGGING, e);
+    auto& dragging = em.GetComponent<CDragging>(e);
+    dragging.target = INVALID_ENTITY;
+
+    // Health 
     em.AddComponent(HEALTH, e);
     auto& health = em.GetComponent<CHealth>(e);
     health.current = 1.0f;
     health.max = 1.0f;
 
-    // Combat (weak individually)
+    // Combat 
     em.AddComponent(COMBAT, e);
     auto& combat = em.GetComponent<CCombat>(e);
     combat.attackDamage = 1.0f;
-    combat.attackRange = 10.0f;
     combat.attackCooldown = 0.5f;
     combat.attackTimer = 0.0f;
-    combat.target = 0;
 
-    // Renderer (small brown circle)
+    // Renderer (brown)
     em.AddComponent(CIRCLE_RENDERER, e);
     auto& renderer = em.GetComponent<CCircleRenderer>(e);
-    renderer.radius = 3.0f;
+    renderer.radius = collider.radius;
     renderer.r = 0.6f;
     renderer.g = 0.4f;
     renderer.b = 0.2f;
@@ -54,6 +98,9 @@ namespace SpawnUtils {
   }
 
   Entity SpawnFood(EntityManager& em, const Vec2& position, float amount) {
+    // Clamp amount to max
+    amount = std::min(amount, MAX_FOOD_AMOUNT);
+
     Entity e = em.AddEntityImmediate("food");
 
     // Transform
@@ -62,20 +109,82 @@ namespace SpawnUtils {
     transform.position = position;
     transform.velocity = Vec2(0.0f, 0.0f);
 
+    float radius = CalculateFoodRadius(amount);
+
+    // Collider (size based on amount)
+    em.AddComponent(CIRCLE_COLLIDER, e);
+    auto& collider = em.GetComponent<CCircleCollider>(e);
+    collider.radius = radius;
+
     // Food data
     em.AddComponent(FOOD, e);
     auto& food = em.GetComponent<CFood>(e);
     food.amount = amount;
 
-    // Renderer (green circle, size based on amount)
+    // Draggable
+    em.AddComponent(DRAGGABLE, e);
+    auto& draggable = em.GetComponent<CDraggable>(e);
+    draggable.weight = CalculateWeight(amount);
+    draggable.maxDraggers = CalculateMaxDraggers(amount);
+    draggable.draggerCount = 0;
+
+    // Renderer (green)
     em.AddComponent(CIRCLE_RENDERER, e);
     auto& renderer = em.GetComponent<CCircleRenderer>(e);
-    renderer.radius = 8.0f + (amount / 100.0f) * 7.0f;  // 8-15 radius based on amount
+    renderer.radius = radius;
     renderer.r = 0.2f;
     renderer.g = 0.8f;
     renderer.b = 0.2f;
 
     return e;
+  }
+
+  void UpdateFoodProperties(EntityManager& em, Entity food) {
+    if (!em.HasComponents(FOOD | DRAGGABLE | CIRCLE_COLLIDER | CIRCLE_RENDERER, food)) return;
+
+    auto& foodComp = em.GetComponent<CFood>(food);
+    auto& draggable = em.GetComponent<CDraggable>(food);
+    auto& collider = em.GetComponent<CCircleCollider>(food);
+    auto& renderer = em.GetComponent<CCircleRenderer>(food);
+
+    // Clamp amount to max
+    foodComp.amount = std::min(foodComp.amount, MAX_FOOD_AMOUNT);
+
+    // Update based on current amount
+    float radius = CalculateFoodRadius(foodComp.amount);
+    draggable.weight = CalculateWeight(foodComp.amount);
+    draggable.maxDraggers = CalculateMaxDraggers(foodComp.amount);
+    collider.radius = radius;
+    renderer.radius = radius;
+  }
+
+  int GetFoodCount(EntityManager& em) {
+    return static_cast<int>(em.GetEntitiesWithComponents(FOOD).size());
+  }
+
+  Entity TrySpawnFood(EntityManager& em, const Vec2& position, float amount) {
+    // Check if we can spawn more food
+    if (GetFoodCount(em) >= MAX_FOOD_ENTITIES) {
+      return INVALID_ENTITY;
+    }
+    return SpawnFood(em, position, amount);
+  }
+
+  Entity MergeOrSpawnFood(EntityManager& em, SpatialGrid& grid, const Vec2& position,
+    float amount, float mergeRadius) {
+    // Look for nearby food to merge with
+    Entity nearbyFood = grid.QueryNearest(position, mergeRadius, FOOD | TRANSFORM, em);
+
+    if (nearbyFood != INVALID_ENTITY) {
+      // Merge with existing food
+      auto& foodComp = em.GetComponent<CFood>(nearbyFood);
+      foodComp.amount += amount;
+      UpdateFoodProperties(em, nearbyFood);
+      return nearbyFood;
+    }
+
+    // No nearby food, try to spawn new
+    return TrySpawnFood(em, position, amount);
   }
 
   Entity SpawnColony(EntityManager& em, const Vec2& position) {
@@ -115,31 +224,58 @@ namespace SpawnUtils {
     transform.position = position;
     transform.velocity = Vec2(0.0f, 0.0f);
 
-    // Spider behavior
-    em.AddComponent(SPIDER, e);
-    auto& spider = em.GetComponent<CSpider>(e);
-    spider.huntRadius = 150.0f;
-    spider.speed = 80.0f;
+    // Collider 
+    em.AddComponent(CIRCLE_COLLIDER, e);
+    auto& collider = em.GetComponent<CCircleCollider>(e);
+    collider.radius = 12.0f;
 
-    // Health (tough but killable by swarm)
+    // Spider marker
+    em.AddComponent(SPIDER, e);
+
+    // Wander behavior (when no target)
+    em.AddComponent(WANDER, e);
+    auto& wander = em.GetComponent<CWander>(e);
+    float angle = RandomFloat(0.0f, TWO_PI);
+    wander.direction = Vec2(cos(angle), sin(angle));
+    wander.timer = 0.0f;
+
+    // Speed 
+    em.AddComponent(SPEED, e);
+    auto& speed = em.GetComponent<CSpeed>(e);
+    speed.value = 80.0f;
+
+    // Detection (hunt radius)
+    em.AddComponent(DETECTION, e);
+    auto& detection = em.GetComponent<CDetection>(e);
+    detection.radius = 150.0f;
+
+    // Target (initially none)
+    em.AddComponent(TARGET, e);
+
+    // Health 
     em.AddComponent(HEALTH, e);
     auto& health = em.GetComponent<CHealth>(e);
     health.current = 50.0f;
     health.max = 50.0f;
 
-    // Combat (deadly to ants)
+    // Combat
     em.AddComponent(COMBAT, e);
     auto& combat = em.GetComponent<CCombat>(e);
-    combat.attackDamage = 100.0f;  // One-shots an ant
-    combat.attackRange = 15.0f;
+    combat.attackDamage = 100.0f;
     combat.attackCooldown = 0.3f;
     combat.attackTimer = 0.0f;
-    combat.target = 0;
 
-    // Renderer (red circle, larger than ants)
+    // Draggable (when dead, can be dragged)
+    em.AddComponent(DRAGGABLE, e);
+    auto& draggable = em.GetComponent<CDraggable>(e);
+    draggable.weight = 10.0f;
+    draggable.maxDraggers = MAX_DRAGGERS;
+    draggable.draggerCount = 0;
+
+    // Renderer (red)
     em.AddComponent(CIRCLE_RENDERER, e);
     auto& renderer = em.GetComponent<CCircleRenderer>(e);
-    renderer.radius = 12.0f;
+    renderer.radius = collider.radius;
     renderer.r = 0.8f;
     renderer.g = 0.1f;
     renderer.b = 0.1f;
