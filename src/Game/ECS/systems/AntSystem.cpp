@@ -43,6 +43,44 @@ namespace AntSystem {
     }
   }
 
+  // Handle FORAGE state - returning home with food
+  static void UpdateForage(Entity e, EntityManager& em, SpatialGrid& grid,
+    PheromoneGrid& pheromones, float deltaTime) {
+    auto& transform = em.GetComponent<CTransform>(e);
+    auto& wander = em.GetComponent<CWander>(e);
+    auto& speed = em.GetComponent<CSpeed>(e);
+    auto& detection = em.GetComponent<CDetection>(e);
+
+    // Deposit FOOD pheromone as the ants walk
+    pheromones.Deposit(PHEROMONE_FOOD, transform.position, 5.0f);
+
+    // Look for colony
+    Entity colony = grid.QueryNearest(transform.position, detection.radius,
+      COLONY | TRANSFORM, em);
+
+    if (colony != INVALID_ENTITY) {
+      // Found colony! Override direction toward it
+      Vec2 colonyPos = em.GetComponent<CTransform>(colony).position;
+      Vec2 toColony = colonyPos - transform.position;
+      float dist = toColony.Length();
+
+      if (dist > 0.001f) {
+        wander.direction = toColony / dist;
+        transform.velocity = wander.direction * speed.value;
+      }
+    }
+    else {
+      // No colony in detection range, follow HOME pheromone
+      Vec2 homeDir = pheromones.SampleGradient(PHEROMONE_HOME, transform.position);
+
+      if (homeDir.LengthSquared() > 0.0001f) {
+        wander.direction = homeDir;
+        transform.velocity = wander.direction * speed.value;
+      }
+      // Else: let WanderSystem handle it
+    }
+  }
+
 
   void Update(EntityManager& em, SpatialGrid& grid, PheromoneGrid& pheromones,
     float deltaTime) {
@@ -63,11 +101,11 @@ namespace AntSystem {
           UpdateWander(e, em, grid, pheromones, deltaTime);
           break;
 
-
         case AntState::FOLLOW_TRAIL:
           break;
 
         case AntState::FORAGE:
+          UpdateForage(e, em, grid, pheromones, deltaTime);
           break;
 
         case AntState::FLEE:
