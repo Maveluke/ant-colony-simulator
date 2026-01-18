@@ -126,6 +126,41 @@ namespace AntSystem {
     }
   }
 
+  // Handle ATTACK state - move toward and attack spider
+  static void UpdateAttack(Entity e, EntityManager& em, SpatialGrid& grid,
+    PheromoneGrid& pheromones, float deltaTime) {
+    auto& ant = em.GetComponent<CAnt>(e);
+    auto& transform = em.GetComponent<CTransform>(e);
+    auto& wander = em.GetComponent<CWander>(e);
+    auto& speed = em.GetComponent<CSpeed>(e);
+    auto& detection = em.GetComponent<CDetection>(e);
+
+    // Look for nearby spider
+    Entity spider = grid.QueryNearest(transform.position, detection.radius,
+      SPIDER | TRANSFORM, em);
+
+    if (spider != INVALID_ENTITY) {
+      // Keep depositing ALARM to maintain swarm
+      pheromones.DepositRadius(PHEROMONE_ALARM, transform.position,
+        ALARM_DEPOSIT_RADIUS, ALARM_DEPOSIT_AMOUNT);
+
+      // Move toward spider
+      Vec2 spiderPos = em.GetComponent<CTransform>(spider).position;
+      Vec2 toSpider = spiderPos - transform.position;
+      float dist = toSpider.Length();
+
+      if (dist > 0.001f) {
+        wander.direction = toSpider / dist;
+      }
+
+      transform.velocity = wander.direction * speed.value;
+    }
+    else {
+      // Spider gone, go back to wandering
+      ant.state = AntState::WANDER;
+      // WanderSystem will handle velocity
+    }
+  }
 
   void Update(EntityManager& em, SpatialGrid& grid, PheromoneGrid& pheromones,
     float deltaTime) {
