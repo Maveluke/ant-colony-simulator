@@ -1,11 +1,16 @@
 #pragma once
-#include "ECS/EntityManager.h"
-#include "SpatialGrid.h"
+#include "../EntityManager.h"
+#include "grids/SpatialGrid.h"
+#include "grids/PheromoneGrid.h"
+#include "EventBuffer.h"
+#include "physics/DragSystem.h"
 
 namespace AntSystem {
 
-  // Call once per frame to update all ant behavior
-  void Update(EntityManager& em, SpatialGrid& grid, float deltaTime,
-    float worldWidth, float worldHeight);
+  // Update all ant AI 
+  void Update(EntityManager& em, SpatialGrid& grid, PheromoneGrid& pheromones,
+    float deltaTime);
 
+  // Handle collision events - food pickup, colony deposit, spider encounter
+  void HandleCollisions(EntityManager& em, EventBuffer& events);
 }

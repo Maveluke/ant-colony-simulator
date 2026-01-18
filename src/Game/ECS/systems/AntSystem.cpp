@@ -1,99 +1,68 @@
 #include "AntSystem.h"
 #include "../Components.h"
-#include "../Definition.h"
+#include "../Constants.h"
 #include <cstdlib>
 #include <cmath>
 
 namespace AntSystem {
 
-  // Helper: Generate random float between min and max
-  static float RandomFloat(float min, float max) {
-    return min + (rand() / (float)RAND_MAX) * (max - min);
-  }
+  // Constants
+  constexpr float ALARM_DEPOSIT_AMOUNT = 3.0f;
+  constexpr float ALARM_DEPOSIT_RADIUS = 30.0f;
+  constexpr float ALARM_ATTACK_THRESHOLD = 20.0f;
 
-  // Helper: Generate random unit direction vector
-  static Vec2 RandomDirection() {
-    float angle = RandomFloat(0.0f, TWO_PI);
-    return Vec2(cos(angle), sin(angle));
-  }
+  // Handle WANDER state - look for food, override direction if found
+  // WanderSystem handles default wandering behavior
+  static void UpdateWander(Entity e, EntityManager& em, SpatialGrid& grid,
+    PheromoneGrid& pheromones, float deltaTime) {
+    auto& transform = em.GetComponent<CTransform>(e);
+    auto& wander = em.GetComponent<CWander>(e);
+    auto& speed = em.GetComponent<CSpeed>(e);
+    auto& detection = em.GetComponent<CDetection>(e);
+    auto& target = em.GetComponent<CTarget>(e);
 
-  // Helper: Slightly perturb current direction for smoother wandering
-  static Vec2 WanderDirection(const Vec2& currentDir) {
-    // Add random offset to current direction, then normalize
-    // This creates smoother turns rather than abrupt direction changes
-    float perturbAngle = RandomFloat(-1.0f, 1.0f);
-    float cosA = cos(perturbAngle);
-    float sinA = sin(perturbAngle);
+    // Look for nearby food
+    Entity nearestFood = grid.QueryNearest(transform.position, detection.radius,
+      FOOD | TRANSFORM | CIRCLE_COLLIDER, em);
 
-    // Rotate current direction by perturbAngle
-    Vec2 newDir;
-    newDir.x = currentDir.x * cosA - currentDir.y * sinA;
-    newDir.y = currentDir.x * sinA + currentDir.y * cosA;
+    if (nearestFood != INVALID_ENTITY) {
+      // Found food! Target it and override direction toward it
+      target.entity = nearestFood;
+      Vec2 foodPos = em.GetComponent<CTransform>(nearestFood).position;
+      Vec2 toFood = foodPos - transform.position;
+      float dist = toFood.Length();
 
-    return newDir.Normalized();
-  }
-
-  // Handle WANDER state: random movement
-  static void UpdateWander(CAnt& ant, CTransform& transform, float deltaTime,
-    float worldWidth, float worldHeight) {
-    // Decrement timer
-    ant.wanderTimer -= deltaTime;
-
-    // Time to change direction?
-    if (ant.wanderTimer <= 0.0f) {
-      ant.direction = WanderDirection(ant.direction);
-      ant.wanderTimer = RandomFloat(0.5f, 2.0f);
+      if (dist > 0.001f) {
+        wander.direction = toFood / dist;
+        transform.velocity = wander.direction * speed.value;
+      }
     }
-
-    // Apply movement
-    transform.velocity = ant.direction * ant.speed;
-    transform.position = transform.position + transform.velocity * deltaTime;
-
-    // Bounce off world boundaries
-    bool bounced = false;
-
-    if (transform.position.x < 0.0f) {
-      transform.position.x = 0.0f;
-      ant.direction.x = -ant.direction.x;
-      bounced = true;
-    }
-    else if (transform.position.x > worldWidth) {
-      transform.position.x = worldWidth;
-      ant.direction.x = -ant.direction.x;
-      bounced = true;
-    }
-
-    if (transform.position.y < 0.0f) {
-      transform.position.y = 0.0f;
-      ant.direction.y = -ant.direction.y;
-      bounced = true;
-    }
-    else if (transform.position.y > worldHeight) {
-      transform.position.y = worldHeight;
-      ant.direction.y = -ant.direction.y;
-      bounced = true;
-    }
-
-    // Reset timer on bounce so ant doesn't immediately turn away from wall
-    if (bounced) {
-      ant.wanderTimer = RandomFloat(0.3f, 0.8f);
+    else {
+      // No food nearby, let WanderSystem handle movement
+      target.entity = INVALID_ENTITY;
     }
   }
 
-  void Update(EntityManager& em, SpatialGrid& grid, float deltaTime,
-    float worldWidth, float worldHeight) {
 
-    // Get all entities with ANT and TRANSFORM components
-    auto ants = em.GetEntitiesWithComponents(ANT | TRANSFORM);
+  void Update(EntityManager& em, SpatialGrid& grid, PheromoneGrid& pheromones,
+    float deltaTime) {
+
+    auto ants = em.GetEntitiesWithComponents(ANT | TRANSFORM | WANDER | SPEED);
 
     for (Entity e : ants) {
       auto& ant = em.GetComponent<CAnt>(e);
-      auto& transform = em.GetComponent<CTransform>(e);
+
+      // Deposit HOME pheromone while wandering (leaving nest)
+      if (ant.state == AntState::WANDER) {
+        auto& transform = em.GetComponent<CTransform>(e);
+        pheromones.Deposit(PHEROMONE_HOME, transform.position, 2.0f);
+      }
 
       switch (ant.state) {
         case AntState::WANDER:
-          UpdateWander(ant, transform, deltaTime, worldWidth, worldHeight);
+          UpdateWander(e, em, grid, pheromones, deltaTime);
           break;
+
 
         case AntState::FOLLOW_TRAIL:
           break;
@@ -109,5 +78,4 @@ namespace AntSystem {
       }
     }
   }
-
 }
