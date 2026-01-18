@@ -1,6 +1,11 @@
 #pragma once
-#include "Vec2.h"
+#include "../Vec2.h"
 #include "Constants.h"
+#include <array>
+
+constexpr int MAX_DRAGGERS = 8;
+constexpr int MAX_FOOD_ENTITIES = 200;
+constexpr float MAX_FOOD_AMOUNT = 500.0f;
 
 // TODO: Rearrange later after finalized
 enum ComponentType {
@@ -20,7 +25,8 @@ enum ComponentType {
   SPEED = 1 << 12,
   DETECTION = 1 << 13,
   TARGET = 1 << 14,
-  CARRYING = 1 << 15
+  DRAGGING = 1 << 15,
+  DRAGGABLE = 1 << 16
 };
 
 struct CTransform {
@@ -63,12 +69,22 @@ struct CDetection {
   float radius = 100.0f;
 };
 
+// Reference for the target entity
 struct CTarget {
   Entity entity = INVALID_ENTITY;
 };
 
-struct CCarrying {
-  float foodAmount = 0.0f;
+// What this entity is dragging (for ants)
+struct CDragging {
+  Entity target = INVALID_ENTITY;
+};
+
+// Can be dragged by other entities (for food, corpses)
+struct CDraggable {
+  float weight = 1.0f;
+  int maxDraggers = 1;
+  int draggerCount = 0;
+  std::array<Entity, MAX_DRAGGERS> draggers = {};
 };
 
 struct CHealth {
