@@ -1,6 +1,7 @@
 #pragma once
 #include "Vec2.h"
-#include "../Definition.h"
+#include "../EntityManager.h"
+#include "../Constants.h"
 #include <vector>
 
 class SpatialGrid {
@@ -12,7 +13,6 @@ private:
   float m_worldWidth;
   float m_worldHeight;
 
-  // Each cell contains a list of entity IDs (array of vectors of entity IDs)
   std::vector<std::vector<Entity>> m_cells;
 
   // Convert world position to cell index
@@ -34,6 +34,11 @@ public:
 
   // Get all entities in a specific cell (useful for debugging)
   const std::vector<Entity>& GetCell(int cellX, int cellY) const;
+
+  // Find nearest entity with specific components within radius
+  // Returns INVALID_ENTITY if none found
+  Entity QueryNearest(const Vec2& position, float radius,
+    uint32_t componentMask, EntityManager& em) const;
 
   // Getters for grid info
   int GetCols() const { return m_cols; }

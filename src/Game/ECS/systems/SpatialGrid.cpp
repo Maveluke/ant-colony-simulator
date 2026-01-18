@@ -1,19 +1,14 @@
 #include "SpatialGrid.h"
 #include <cmath>
 #include <algorithm>
-#include <cstdio>
 
 SpatialGrid::SpatialGrid(float worldWidth, float worldHeight, float cellSize)
   : m_worldWidth(worldWidth)
   , m_worldHeight(worldHeight)
   , m_cellSize(cellSize) {
-  printf("Ceil(%f) = %d\n", worldWidth / cellSize, static_cast<int>(std::ceil(worldWidth / cellSize)));
-  printf("Ceil(%f) = %d\n", worldHeight / cellSize, static_cast<int>(std::ceil(worldHeight / cellSize)));
   m_cols = static_cast<int>(std::ceil(worldWidth / cellSize));
   m_rows = static_cast<int>(std::ceil(worldHeight / cellSize));
-  printf("SpatialGrid created with %d cols and %d rows\n", m_cols, m_rows);
   m_cells.resize(m_cols * m_rows);
-  printf("SpatialGrid created with %d cells\n", m_cols * m_rows);
 }
 
 int SpatialGrid::GetCellX(float x) const {
@@ -57,6 +52,8 @@ std::vector<Entity> SpatialGrid::Query(const Vec2& position, float radius) const
     for (int cx = minCellX; cx <= maxCellX; cx++) {
       int index = cy * m_cols + cx;
 
+      // Add all entities from this cell
+      // (Caller can do precise distance check if needed)
       for (Entity e : m_cells[index]) {
         result.push_back(e);
       }
@@ -69,4 +66,44 @@ std::vector<Entity> SpatialGrid::Query(const Vec2& position, float radius) const
 const std::vector<Entity>& SpatialGrid::GetCell(int cellX, int cellY) const {
   int index = cellY * m_cols + cellX;
   return m_cells[index];
+}
+
+Entity SpatialGrid::QueryNearest(const Vec2& position, float radius,
+  uint32_t componentMask, EntityManager& em) const {
+  // Calculate which cells to check
+  int minCellX = GetCellX(position.x - radius);
+  int maxCellX = GetCellX(position.x + radius);
+  int minCellY = GetCellY(position.y - radius);
+  int maxCellY = GetCellY(position.y + radius);
+
+  float radiusSq = radius * radius;
+  float nearestDistSq = radiusSq + 1.0f;  // Start beyond radius
+  Entity nearestEntity = INVALID_ENTITY;
+
+  // Check all cells in bounding box
+  for (int cy = minCellY; cy <= maxCellY; cy++) {
+    for (int cx = minCellX; cx <= maxCellX; cx++) {
+      int index = cy * m_cols + cx;
+
+      for (Entity e : m_cells[index]) {
+        // Check if entity has required components
+        if (!em.HasComponents(componentMask, e)) {
+          continue;
+        }
+
+        // Calculate distance
+        const Vec2& entityPos = em.GetComponent<CTransform>(e).position;
+        Vec2 diff = entityPos - position;
+        float distSq = diff.x * diff.x + diff.y * diff.y;
+
+        // Check if within radius and closer than current nearest
+        if (distSq <= radiusSq && distSq < nearestDistSq) {
+          nearestDistSq = distSq;
+          nearestEntity = e;
+        }
+      }
+    }
+  }
+
+  return nearestEntity;
 }
