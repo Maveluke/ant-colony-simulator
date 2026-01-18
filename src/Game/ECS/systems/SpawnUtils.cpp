@@ -1,5 +1,5 @@
 #include "SpawnUtils.h"
-#include "SpatialGrid.h"
+#include "grids/SpatialGrid.h"
 #include "../Components.h"
 #include "../Constants.h"
 #include <cstdlib>
