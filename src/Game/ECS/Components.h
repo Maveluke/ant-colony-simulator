@@ -48,7 +48,7 @@ struct CQuadRenderer {
 
 struct CCircleRenderer {
   float radius = 1.0f;
-  float z_depth = 0.0f;
+  float z_depth = -1.0f;
   float r = 1.0f, g = 1.0f, b = 1.0f;
 };
 
@@ -58,7 +58,11 @@ struct CCircleCollider {
 
 struct CWander {
   Vec2 direction = Vec2(1.0f, 0.0f);
-  float timer = 0.0f;
+  float timer = 0.0f;              // Timer for random direction changes
+  float pheromoneTimer = 0.0f;     // Timer for pheromone sampling (Monte Carlo)
+  Vec2 lastPosition = Vec2(0.0f, 0.0f);  // For stuck detection
+  float stuckTimer = 0.0f;         // How long we've been stuck
+  float escapeTimer = 0.0f;        // When > 0, ignore pheromone sampling and keep escaping
 };
 
 struct CSpeed {
