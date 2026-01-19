@@ -1,7 +1,7 @@
 #pragma once
 #include "Vec2.h"
-#include "../EntityManager.h"
-#include "../Constants.h"
+#include "ECS/EntityManager.h"
+#include "ECS/Constants.h"
 #include <vector>
 
 class SpatialGrid {

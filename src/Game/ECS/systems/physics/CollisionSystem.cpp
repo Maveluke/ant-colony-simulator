@@ -1,6 +1,6 @@
 #include "CollisionSystem.h"
-#include "../Components.h"
-#include "../Constants.h"
+#include "ECS/Components.h"
+#include "ECS/Constants.h"
 
 namespace CollisionSystem {
 

@@ -1,7 +1,7 @@
 #pragma once
-#include "../EntityManager.h"
-#include "SpatialGrid.h"
-#include "EventBuffer.h"
+#include "ECS/EntityManager.h"
+#include "ECS/systems/grids/SpatialGrid.h"
+#include "ECS/systems/EventBuffer.h"
 
 namespace CollisionSystem {
 

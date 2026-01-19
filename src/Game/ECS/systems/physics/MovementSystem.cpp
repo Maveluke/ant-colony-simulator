@@ -1,5 +1,5 @@
 #include "MovementSystem.h"
-#include "../Components.h"
+#include "ECS/Components.h"
 
 namespace MovementSystem {
 

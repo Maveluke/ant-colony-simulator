@@ -1,5 +1,5 @@
 #pragma once
-#include "../EntityManager.h"
+#include "ECS/EntityManager.h"
 
 namespace MovementSystem {
   // Update all entities with TRANSFORM component
