@@ -1,9 +1,9 @@
 #pragma once
-#include "../EntityManager.h"
-#include "grids/SpatialGrid.h"
-#include "grids/PheromoneGrid.h"
-#include "EventBuffer.h"
-#include "physics/DragSystem.h"
+#include "ECS/EntityManager.h"
+#include "ECS/systems/grids/SpatialGrid.h"
+#include "ECS/systems/grids/PheromoneGrid.h"
+#include "ECS/systems/EventBuffer.h"
+#include "ECS/systems/physics/DragSystem.h"
 
 namespace AntSystem {
 
