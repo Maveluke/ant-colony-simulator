@@ -9,17 +9,25 @@
 constexpr uint32_t MAX_ENTITIES{ 5000 };
 
 using EntityComponentVectorTuple =
-std::tuple <
+std::tuple<
   std::vector<CTransform>,
   std::vector<CAABB>,
-  std::vector<CHealth>,
-  std::vector<CCombat>,
+  std::vector<CQuadRenderer>,
+  std::vector<CCircleRenderer>,
   std::vector<CAnt>,
   std::vector<CFood>,
   std::vector<CColony>,
   std::vector<CSpider>,
-  std::vector<CQuadRenderer>,
-  std::vector<CCircleRenderer>>;
+  std::vector<CHealth>,
+  std::vector<CCombat>,
+  std::vector<CCircleCollider>,
+  std::vector<CWander>,
+  std::vector<CSpeed>,
+  std::vector<CDetection>,
+  std::vector<CTarget>,
+  std::vector<CDragging>,
+  std::vector<CDraggable>
+>;
 
 // Cache-friendly memory pool for Entity Manager
 
