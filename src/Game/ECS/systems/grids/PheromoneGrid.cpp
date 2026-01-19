@@ -1,4 +1,4 @@
-#include "PheromoneGrid.h"
+#include "ECS/systems/grids/PheromoneGrid.h"
 #include <cmath>
 #include <algorithm>
 
@@ -19,20 +19,20 @@ PheromoneGrid::PheromoneGrid(float worldWidth, float worldHeight, float cellSize
   }
 
   // Default configs - stagger the intervals so they don't all update same frame
-  // HOME: slow decay, follow descending (back to nest)
-  m_configs[PHEROMONE_HOME] = { 0.95f, 0.15f, 255.0f, false };
+  // HOME: slow decay, follow ascending (toward colony)
+  m_configs[PHEROMONE_HOME] = { 0.95f, 1.0f, 255.0f };
   m_decayTimers[PHEROMONE_HOME] = 0.0f;
 
   // FOOD: slow decay, follow descending (toward source)
-  m_configs[PHEROMONE_FOOD] = { 0.95f, 0.15f, 255.0f, false };
+  m_configs[PHEROMONE_FOOD] = { 0.95f, 1.0f, 255.0f };
   m_decayTimers[PHEROMONE_FOOD] = 0.05f;  // Offset
 
   // ALARM: fast decay, follow ascending (toward danger for attack)
-  m_configs[PHEROMONE_ALARM] = { 0.80f, 0.10f, 255.0f, true };
+  m_configs[PHEROMONE_ALARM] = { 0.80f, 0.1f, 255.0f };
   m_decayTimers[PHEROMONE_ALARM] = 0.10f;  // Offset
 
   // PLAYER: medium decay, follow ascending (toward where player drew)
-  m_configs[PHEROMONE_PLAYER] = { 0.90f, 0.12f, 255.0f, true };
+  m_configs[PHEROMONE_PLAYER] = { 0.90f, 0.12f, 255.0f };
   m_decayTimers[PHEROMONE_PLAYER] = 0.03f;  // Offset
 }
 
@@ -127,50 +127,70 @@ void PheromoneGrid::Update(float deltaTime) {
   }
 }
 
+// DEPRECATED: Use Monte Carlo sampling in AntSystem instead
+// This gradient-based approach averages a small area and can get trapped in local noise
+/*
 Vec2 PheromoneGrid::SampleGradient(PheromoneType type, const Vec2& position) const {
   int centerX = GetCellX(position.x);
   int centerY = GetCellY(position.y);
 
-  // 8 neighbor directions
-  // Order: N, NE, E, SE, S, SW, W, NW
-  const int dx[] = { 0,  1, 1, 1, 0, -1, -1, -1 };
-  const int dy[] = { 1,  1, 0, -1, -1, -1, 0, 1 };
-
-  Vec2 gradient(0.0f, 0.0f);
-  float centerIntensity = GetCellIntensity(type, centerX, centerY);
+  constexpr int SAMPLE_RADIUS = 1;
   bool ascending = m_configs[type].followAscending;
 
-  for (int i = 0; i < 8; i++) {
-    int nx = centerX + dx[i];
-    int ny = centerY + dy[i];
+  float totalIntensity = 0.0f;
+  int validCells = 0;
 
-    if (!IsValidCell(nx, ny)) {
-      continue;
-    }
-
-    float neighborIntensity = GetCellIntensity(type, nx, ny);
-    float diff = neighborIntensity - centerIntensity;
-
-    // If ascending, we want to move toward higher values (positive diff)
-    // If descending, we want to move toward lower values (negative diff)
-    if (!ascending) {
-      diff = -diff;
-    }
-
-    // Weight the direction by how much stronger/weaker it is
-    if (diff > 0.0f) {
-      Vec2 dir(static_cast<float>(dx[i]), static_cast<float>(dy[i]));
-      gradient += dir.Normalized() * diff;
+  for (int dy = -SAMPLE_RADIUS; dy <= SAMPLE_RADIUS; dy++) {
+    for (int dx = -SAMPLE_RADIUS; dx <= SAMPLE_RADIUS; dx++) {
+      int nx = centerX + dx;
+      int ny = centerY + dy;
+      if (!IsValidCell(nx, ny)) continue;
+      float cellIntensity = GetCellIntensity(type, nx, ny);
+      if (cellIntensity > 0.0f) {
+        totalIntensity += cellIntensity;
+        validCells++;
+      }
     }
   }
 
-  // Normalize result if non-zero
+  if (validCells == 0) {
+    return Vec2(0.0f, 0.0f);
+  }
+
+  float avgIntensity = totalIntensity / static_cast<float>(validCells);
+  Vec2 gradient(0.0f, 0.0f);
+
+  for (int dy = -SAMPLE_RADIUS; dy <= SAMPLE_RADIUS; dy++) {
+    for (int dx = -SAMPLE_RADIUS; dx <= SAMPLE_RADIUS; dx++) {
+      if (dx == 0 && dy == 0) continue;
+      int nx = centerX + dx;
+      int ny = centerY + dy;
+      if (!IsValidCell(nx, ny)) continue;
+
+      float cellIntensity = GetCellIntensity(type, nx, ny);
+      if (cellIntensity < 0.001f) continue;
+
+      float diff = cellIntensity - avgIntensity;
+      if (!ascending) diff = -diff;
+
+      if (diff > 0.0f) {
+        Vec2 dir(static_cast<float>(dx), static_cast<float>(dy));
+        float dist = dir.Length();
+        if (dist > 0.001f) {
+          float distanceWeight = 1.0f / (1.0f + (dist - 1.0f) * 0.2f);
+          gradient += (dir / dist) * diff * distanceWeight;
+        }
+      }
+    }
+  }
+
   if (gradient.LengthSquared() > 0.0001f) {
     gradient.Normalize();
   }
 
   return gradient;
 }
+*/
 
 float PheromoneGrid::GetIntensity(PheromoneType type, const Vec2& position) const {
   int cellX = GetCellX(position.x);
@@ -183,6 +203,13 @@ float PheromoneGrid::GetCellIntensity(PheromoneType type, int cellX, int cellY) 
     return 0.0f;
   }
   return m_layers[type][GetCellIndex(cellX, cellY)];
+}
+
+float PheromoneGrid::GetMaxCellIntensity(PheromoneType type) const {
+  if (type < 0 || type >= PHEROMONE_COUNT) {
+    return 0.0f;
+  }
+  return m_configs[type].maxIntensity;
 }
 
 void PheromoneGrid::Clear(PheromoneType type) {

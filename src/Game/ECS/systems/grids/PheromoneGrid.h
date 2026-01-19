@@ -1,5 +1,5 @@
 #pragma once
-#include "../../Vec2.h"
+#include "Vec2.h"
 #include <vector>
 #include <array>
 
@@ -15,7 +15,8 @@ struct PheromoneConfig {
   float decayMultiplier = 0.9f;   // Applied each decay tick (0.9 = lose 10%)
   float decayInterval = 0.1f;     // Seconds between decay ticks
   float maxIntensity = 255.0f;    // Cap value
-  bool followAscending = false;   // true = toward higher values, false = toward source
+  // DEPRECATED
+  // bool followAscending = false;   // true = toward higher values, false = toward source
 };
 
 class PheromoneGrid {
@@ -52,9 +53,11 @@ public:
   // Call once per frame - handles staggered decay internally
   void Update(float deltaTime);
 
+  // DEPRECATED: Use Monte Carlo sampling in AntSystem instead
   // Get direction to follow based on pheromone config (ascending or descending)
+  // Samples a 5x5 area and compares to average intensity for more stable gradients
   // Returns zero vector if no gradient detected
-  Vec2 SampleGradient(PheromoneType type, const Vec2& position) const;
+  // Vec2 SampleGradient(PheromoneType type, const Vec2& position) const;
 
   // Get intensity at position (for visualization / threshold checks)
   float GetIntensity(PheromoneType type, const Vec2& position) const;
@@ -70,4 +73,5 @@ public:
 
   // Direct cell access for visualization
   float GetCellIntensity(PheromoneType type, int cellX, int cellY) const;
+  float GetMaxCellIntensity(PheromoneType type) const;
 };
