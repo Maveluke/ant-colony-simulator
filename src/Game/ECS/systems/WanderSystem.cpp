@@ -1,5 +1,6 @@
-#include "WanderSystem.h"
-#include "../Components.h"
+#include "ECS/systems/WanderSystem.h"
+#include "ECS/Components.h"
+#include "ECS/systems/physics/DragSystem.h"
 #include <cstdlib>
 #include <cmath>
 
@@ -28,6 +29,12 @@ namespace WanderSystem {
     auto entities = em.GetEntitiesWithComponents(TRANSFORM | WANDER | SPEED);
 
     for (Entity e : entities) {
+      // Skip entities that are currently dragging something
+      // Their movement is controlled by DragSystem
+      if (DragSystem::IsDragging(em, e)) {
+        continue;
+      }
+
       auto& transform = em.GetComponent<CTransform>(e);
       auto& wander = em.GetComponent<CWander>(e);
       auto& speed = em.GetComponent<CSpeed>(e);
