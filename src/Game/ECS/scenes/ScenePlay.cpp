@@ -43,12 +43,12 @@ namespace MaveLib {
     redColony = SpawnUtils::SpawnColony(entityManager, redColonyPos, TEAM_RED);
 
     // Spawn blue ants
-    for (int i = 0; i < 500; ++i) {
+    for (int i = 0; i < 1000; ++i) {
       SpawnUtils::SpawnAnt(entityManager, blueColonyPos, TEAM_BLUE, blueColony);
     }
 
     // Spawn red ants
-    for (int i = 0; i < 500; ++i) {
+    for (int i = 0; i < 1000; ++i) {
       SpawnUtils::SpawnAnt(entityManager, redColonyPos, TEAM_RED, redColony);
     }
 
@@ -68,7 +68,7 @@ namespace MaveLib {
 
     // Rebuild spatial grid (all entities with TRANSFORM)
     spatialGrid.Clear();
-    auto transformEntities = entityManager.GetEntitiesWithComponents(TRANSFORM);
+    const auto& transformEntities = entityManager.GetTransformEntities();
     for (Entity e : transformEntities) {
       Vec2 pos = entityManager.GetComponent<CTransform>(e).position;
       spatialGrid.Insert(e, pos);

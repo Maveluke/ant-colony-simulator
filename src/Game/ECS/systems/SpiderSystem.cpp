@@ -8,9 +8,12 @@ namespace SpiderSystem {
   constexpr float ATTACK_RANGE = 15.0f;
 
   void Update(EntityManager& em, SpatialGrid& grid, float deltaTime) {
-    auto spiders = em.GetEntitiesWithComponents(SPIDER | TRANSFORM | WANDER | SPEED | DETECTION);
+    const auto& spiders = em.GetSpiders();
 
     for (Entity spider : spiders) {
+      // Verify spider has all needed components (cache might include partial)
+      if (!em.HasComponents(WANDER | SPEED | DETECTION | COMBAT, spider)) continue;
+
       auto& transform = em.GetComponent<CTransform>(spider);
       auto& wander = em.GetComponent<CWander>(spider);
       auto& speed = em.GetComponent<CSpeed>(spider);

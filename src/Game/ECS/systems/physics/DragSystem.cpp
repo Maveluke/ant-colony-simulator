@@ -152,7 +152,7 @@ namespace DragSystem {
 
   void Update(EntityManager& em, PheromoneGrid& pheromones,
     ColonyPheromoneManager& colonyPheromones, float deltaTime) {
-    auto draggables = em.GetEntitiesWithComponents(DRAGGABLE | TRANSFORM);
+    const auto& draggables = em.GetDraggables();
 
     for (Entity e : draggables) {
       auto& draggable = em.GetComponent<CDraggable>(e);
