@@ -80,6 +80,7 @@ void GameEngine::Update(const float deltaTime) {
   SUserInputHandler();
   CurrentScene().SProcessInput(userButtonStates, userMouseButtonStates, leftStickState, rightStickState, leftTriggerState, rightTriggerState);
   CurrentScene().Update(deltaTime / 1000.0f); // Convert ms to seconds
+  // CurrentScene().Update(deltaTime / 800.0f); // Convert ms to seconds
 }
 
 void GameEngine::Render() {
