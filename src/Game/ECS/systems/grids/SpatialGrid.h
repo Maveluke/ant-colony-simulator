@@ -3,6 +3,7 @@
 #include "ECS/EntityManager.h"
 #include "ECS/Constants.h"
 #include <vector>
+#include <functional>
 
 class SpatialGrid {
 private:
@@ -29,8 +30,13 @@ public:
   // Add entity to grid based on position
   void Insert(Entity entity, const Vec2& position);
 
-  // Get all entities within radius of position
+  // Get all entities within radius of position (ALLOCATES - prefer QueryEach)
   std::vector<Entity> Query(const Vec2& position, float radius) const;
+
+  // Zero-allocation query - calls callback for each entity in radius
+  // Callback signature: void(Entity e)
+  template<typename Func>
+  void QueryEach(const Vec2& position, float radius, Func&& callback) const;
 
   // Get all entities in a specific cell (useful for debugging)
   const std::vector<Entity>& GetCell(int cellX, int cellY) const;
@@ -45,3 +51,28 @@ public:
   int GetRows() const { return m_rows; }
   float GetCellSize() const { return m_cellSize; }
 };
+
+// =============================================================================
+// Template Implementation (must be in header)
+// =============================================================================
+
+template<typename Func>
+void SpatialGrid::QueryEach(const Vec2& position, float radius, Func&& callback) const {
+  // Calculate which cells to check (bounding box of the query circle)
+  int minCellX = GetCellX(position.x - radius);
+  int maxCellX = GetCellX(position.x + radius);
+  int minCellY = GetCellY(position.y - radius);
+  int maxCellY = GetCellY(position.y + radius);
+
+  // Check all cells that could contain entities within radius
+  for (int cy = minCellY; cy <= maxCellY; cy++) {
+    for (int cx = minCellX; cx <= maxCellX; cx++) {
+      int index = cy * m_cols + cx;
+
+      // Call callback for each entity in this cell
+      for (Entity e : m_cells[index]) {
+        callback(e);
+      }
+    }
+  }
+}

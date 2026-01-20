@@ -38,11 +38,11 @@ namespace CollisionSystem {
   }
 
   void Update(EntityManager& em, SpatialGrid& grid, EventBuffer& events) {
-    // Get relevant entities
-    auto ants = em.GetEntitiesWithComponents(ANT | TRANSFORM | CIRCLE_COLLIDER);
-    auto foods = em.GetEntitiesWithComponents(FOOD | TRANSFORM | CIRCLE_COLLIDER);
-    auto colonies = em.GetEntitiesWithComponents(COLONY | TRANSFORM | QUAD_RENDERER);
-    auto spiders = em.GetEntitiesWithComponents(SPIDER | TRANSFORM | CIRCLE_COLLIDER);
+    // Get relevant entities from cache (much faster than GetEntitiesWithComponents)
+    const auto& ants = em.GetAntsWithCollider();
+    const auto& foods = em.GetFoods();
+    const auto& colonies = em.GetColonies();
+    const auto& spiders = em.GetSpiders();
 
     // Ant <-> Food collisions
     for (Entity ant : ants) {
@@ -50,13 +50,11 @@ namespace CollisionSystem {
       auto& antCollider = em.GetComponent<CCircleCollider>(ant);
       auto& antDetection = em.GetComponent<CDetection>(ant);
 
-      // Query nearby food using spatial grid
-      auto nearby = grid.Query(antTransform.position, antDetection.radius);
-
-      for (Entity other : nearby) {
+      // Query nearby food using spatial grid (zero-allocation callback)
+      grid.QueryEach(antTransform.position, antDetection.radius, [&](Entity other) {
         // Check if it's food
         if (!em.HasComponents(FOOD | CIRCLE_COLLIDER, other)) {
-          continue;
+          return;
         }
 
         auto& foodTransform = em.GetComponent<CTransform>(other);
@@ -66,7 +64,7 @@ namespace CollisionSystem {
           foodTransform.position, foodCollider.radius)) {
           events.Push(AntFoodCollision{ ant, other });
         }
-      }
+        });
     }
 
     // Ant <-> Colony collisions
@@ -108,14 +106,11 @@ namespace CollisionSystem {
       auto& spiderTransform = em.GetComponent<CTransform>(spider);
       auto& spiderCollider = em.GetComponent<CCircleCollider>(spider);
 
-      // Query nearby ants
-      auto nearby = grid.Query(spiderTransform.position,
-        spiderCollider.radius + 20.0f);
-
-      for (Entity other : nearby) {
+      // Query nearby ants (zero-allocation callback)
+      grid.QueryEach(spiderTransform.position, spiderCollider.radius + 20.0f, [&](Entity other) {
         // Check if it's an ant
         if (!em.HasComponents(ANT | CIRCLE_COLLIDER, other)) {
-          continue;
+          return;
         }
 
         auto& antTransform = em.GetComponent<CTransform>(other);
@@ -135,7 +130,7 @@ namespace CollisionSystem {
             antTransform.position = spiderTransform.position + pushDir * minDist;
           }
         }
-      }
+        });
     }
 
     // Ant <-> Ant collisions (different teams only)
@@ -145,16 +140,14 @@ namespace CollisionSystem {
       auto& ant1Collider = em.GetComponent<CCircleCollider>(ant1);
       auto& ant1Comp = em.GetComponent<CAnt>(ant1);
 
-      // Query nearby entities
-      auto nearby = grid.Query(ant1Transform.position, ant1Collider.radius + 10.0f);
-
-      for (Entity other : nearby) {
+      // Query nearby entities (zero-allocation callback)
+      grid.QueryEach(ant1Transform.position, ant1Collider.radius + 10.0f, [&](Entity other) {
         // Skip self
-        if (other == ant1) continue;
+        if (other == ant1) return;
 
         // Check if it's an ant
         if (!em.HasComponents(ANT | CIRCLE_COLLIDER, other)) {
-          continue;
+          return;
         }
 
         auto& ant2Comp = em.GetComponent<CAnt>(other);
@@ -163,7 +156,7 @@ namespace CollisionSystem {
         if (ant1Comp.teamId == ant2Comp.teamId ||
           ant1Comp.teamId == TEAM_NONE ||
           ant2Comp.teamId == TEAM_NONE) {
-          continue;
+          return;
         }
 
         auto& ant2Transform = em.GetComponent<CTransform>(other);
@@ -173,7 +166,7 @@ namespace CollisionSystem {
           ant2Transform.position, ant2Collider.radius)) {
           events.Push(AntAntCollision{ ant1, other });
         }
-      }
+        });
     }
   }
 }
