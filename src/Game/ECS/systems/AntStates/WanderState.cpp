@@ -25,40 +25,6 @@ namespace AntStates {
       }
     }
 
-    static Entity FindNearbySpider(EntityManager& em, SpatialGrid& grid,
-      const Vec2& position, float radius) {
-      return grid.QueryNearest(position, radius, SPIDER | TRANSFORM, em);
-    }
-
-    static bool CanDragFood(EntityManager& em, Entity food) {
-      if (!em.HasComponents(DRAGGABLE, food)) return false;
-      auto& draggable = em.GetComponent<CDraggable>(food);
-      return draggable.draggerCount < draggable.maxDraggers;
-    }
-
-    static Entity FindAvailableFood(EntityManager& em, SpatialGrid& grid,
-      const Vec2& position, float radius) {
-      auto nearby = grid.Query(position, radius);
-
-      float nearestDistSq = radius * radius + 1.0f;
-      Entity nearestFood = INVALID_ENTITY;
-
-      for (Entity e : nearby) {
-        if (!em.HasComponents(FOOD | TRANSFORM | CIRCLE_COLLIDER, e)) continue;
-        if (!CanDragFood(em, e)) continue;
-
-        const Vec2& foodPos = em.GetComponent<CTransform>(e).position;
-        float distSq = position.DistanceSquared(foodPos);
-
-        if (distSq < nearestDistSq) {
-          nearestDistSq = distSq;
-          nearestFood = e;
-        }
-      }
-
-      return nearestFood;
-    }
-
     // Alarm thresholds
     constexpr float ALARM_ATTACK_THRESHOLD = 20.0f;
 
@@ -80,63 +46,28 @@ namespace AntStates {
       return AlarmResponse::NONE;
     }
 
-    // Find nearest enemy ant (different team) within radius
-    static Entity FindNearbyEnemyAnt(EntityManager& em, SpatialGrid& grid,
-      const Vec2& position, float radius, TeamId myTeam) {
-      auto nearby = grid.Query(position, radius);
-
-      float closestDistSq = radius * radius;
-      Entity closestEnemy = INVALID_ENTITY;
-
-      for (Entity other : nearby) {
-        if (!em.HasComponents(ANT | TRANSFORM, other)) continue;
-
-        auto& otherAnt = em.GetComponent<CAnt>(other);
-
-        // Skip same team or no team
-        if (otherAnt.teamId == myTeam || otherAnt.teamId == TEAM_NONE) continue;
-
-        auto& otherTransform = em.GetComponent<CTransform>(other);
-        float distSq = position.DistanceSquared(otherTransform.position);
-
-        if (distSq < closestDistSq) {
-          closestDistSq = distSq;
-          closestEnemy = other;
-        }
-      }
-
-      return closestEnemy;
-    }
-
-    // Aggro radius for enemy ant detection (smaller than full detection for performance)
-    constexpr float ENEMY_AGGRO_RADIUS = 30.0f;
-
-    static bool CheckAndHandleThreat(CAnt& ant, EntityManager& em, SpatialGrid& grid,
-      PheromoneGrid& pheromones,
-      const Vec2& position, float detectionRadius) {
+    // Check threats using CACHED nearby query results (no more spatial queries here!)
+    static bool CheckAndHandleThreat(AntContext& ctx) {
       // Direct spider sighting takes priority - flee!
-      Entity spider = FindNearbySpider(em, grid, position, detectionRadius);
-      if (spider != INVALID_ENTITY) {
-        ant.state = AntState::FLEE;
+      if (ctx.nearby.hasSpider()) {
+        ctx.ant.state = AntState::FLEE;
         return true;
       }
 
-      // Check for nearby enemy ants - attack! (use smaller aggro radius for performance)
-      float aggroRadius = (detectionRadius < ENEMY_AGGRO_RADIUS) ? detectionRadius : ENEMY_AGGRO_RADIUS;
-      Entity enemyAnt = FindNearbyEnemyAnt(em, grid, position, aggroRadius, ant.teamId);
-      if (enemyAnt != INVALID_ENTITY) {
-        ant.state = AntState::ATTACK;
+      // Check for nearby enemy ants - attack!
+      if (ctx.nearby.hasEnemyAnt()) {
+        ctx.ant.state = AntState::ATTACK;
         return true;
       }
 
       // Check alarm pheromone
-      AlarmResponse response = EvaluateAlarmResponse(pheromones, position);
+      AlarmResponse response = EvaluateAlarmResponse(ctx.pheromones, ctx.transform.position);
       if (response == AlarmResponse::ATTACK) {
-        ant.state = AntState::ATTACK;
+        ctx.ant.state = AntState::ATTACK;
         return true;
       }
       else if (response == AlarmResponse::FLEE) {
-        ant.state = AntState::FLEE;
+        ctx.ant.state = AntState::FLEE;
         return true;
       }
 
@@ -151,18 +82,15 @@ namespace AntStates {
         return;
       }
 
-      // Check for threats (spider or alarm pheromone)
-      if (CheckAndHandleThreat(ctx.ant, ctx.em, ctx.grid, ctx.pheromones,
-        ctx.transform.position, ctx.detection.radius)) {
+      // Check for threats using CACHED results
+      if (CheckAndHandleThreat(ctx)) {
         return;
       }
 
-      // Look for nearby food
-      Entity nearestFood = FindAvailableFood(ctx.em, ctx.grid,
-        ctx.transform.position, ctx.detection.radius);
-      if (nearestFood != INVALID_ENTITY) {
-        ctx.target.entity = nearestFood;
-        Vec2 foodPos = ctx.em.GetComponent<CTransform>(nearestFood).position;
+      // Look for nearby food (from CACHED query)
+      if (ctx.nearby.hasFood()) {
+        ctx.target.entity = ctx.nearby.nearestFood;
+        Vec2 foodPos = ctx.em.GetComponent<CTransform>(ctx.nearby.nearestFood).position;
         MoveToward(ctx.transform, ctx.wander, ctx.speed.value, foodPos);
         return;
       }

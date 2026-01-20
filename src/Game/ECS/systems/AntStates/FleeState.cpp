@@ -36,11 +36,6 @@ namespace AntStates {
       transform.velocity = wander.direction * speed * speedMultiplier;
     }
 
-    static Entity FindNearbySpider(EntityManager& em, SpatialGrid& grid,
-      const Vec2& position, float radius) {
-      return grid.QueryNearest(position, radius, SPIDER | TRANSFORM, em);
-    }
-
     // State Update
     void Update(AntContext& ctx) {
       // Deposit ALARM pheromone to alert nearby ants
@@ -53,11 +48,9 @@ namespace AntStates {
         return;
       }
 
-      // Look for visible spider
-      Entity spider = FindNearbySpider(ctx.em, ctx.grid,
-        ctx.transform.position, ctx.detection.radius);
-      if (spider != INVALID_ENTITY) {
-        Vec2 spiderPos = ctx.em.GetComponent<CTransform>(spider).position;
+      // Look for visible spider (use cached nearby result)
+      if (ctx.nearby.nearestSpider != INVALID_ENTITY) {
+        Vec2 spiderPos = ctx.em.GetComponent<CTransform>(ctx.nearby.nearestSpider).position;
         MoveAwayFrom(ctx.transform, ctx.wander, ctx.speed.value, spiderPos, FLEE_SPEED_MULTIPLIER);
         return;
       }

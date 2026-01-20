@@ -4,6 +4,7 @@
 #include "ECS/systems/grids/SpatialGrid.h"
 #include "ECS/systems/grids/PheromoneGrid.h"
 #include "ECS/systems/grids/ColonyPheromoneManager.h"
+#include "ECS/systems/helpers/NearbyQuery.h"
 
 // Context struct passed to all ant state handlers
 // Bundles entity, system references, and component references
@@ -28,6 +29,9 @@ struct AntContext {
   CTarget& target;
   CCombat& combat;
 
+  // Cached nearby query result (computed once per ant per frame)
+  NearbyEntities nearby;
+
   // Constructor
   AntContext(
     Entity e,
@@ -42,7 +46,8 @@ struct AntContext {
     CSpeed& speed_,
     CDetection& detection_,
     CTarget& target_,
-    CCombat& combat_
+    CCombat& combat_,
+    const NearbyEntities& nearby_
   )
     : entity(e)
     , em(em_)
@@ -57,6 +62,7 @@ struct AntContext {
     , detection(detection_)
     , target(target_)
     , combat(combat_)
+    , nearby(nearby_)
   {
   }
 };

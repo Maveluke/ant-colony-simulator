@@ -36,40 +36,7 @@ namespace AntStates {
       transform.velocity = wander.direction * speed;
     }
 
-    static Entity FindNearbySpider(EntityManager& em, SpatialGrid& grid,
-      const Vec2& position, float radius) {
-      return grid.QueryNearest(position, radius, SPIDER | TRANSFORM, em);
-    }
-
-    // Find nearest enemy ant (different team) within radius
-    static Entity FindNearbyEnemyAnt(EntityManager& em, SpatialGrid& grid,
-      const Vec2& position, float radius, TeamId myTeam) {
-      auto nearby = grid.Query(position, radius);
-
-      float closestDistSq = radius * radius;
-      Entity closestEnemy = INVALID_ENTITY;
-
-      for (Entity other : nearby) {
-        if (!em.HasComponents(ANT | TRANSFORM, other)) continue;
-
-        auto& otherAnt = em.GetComponent<CAnt>(other);
-
-        // Skip same team or no team
-        if (otherAnt.teamId == myTeam || otherAnt.teamId == TEAM_NONE) continue;
-
-        auto& otherTransform = em.GetComponent<CTransform>(other);
-        float distSq = position.DistanceSquared(otherTransform.position);
-
-        if (distSq < closestDistSq) {
-          closestDistSq = distSq;
-          closestEnemy = other;
-        }
-      }
-
-      return closestEnemy;
-    }
-
-    // State Update
+    // State Update - uses CACHED nearby query results
     void Update(AntContext& ctx) {
       // Check if swarm has dispersed - should we retreat?
       float alarmIntensity = ctx.pheromones.GetIntensity(PHEROMONE_ALARM, ctx.transform.position);
@@ -78,26 +45,22 @@ namespace AntStates {
         return;
       }
 
-      // Look for visible spider first (higher priority threat)
-      Entity spider = FindNearbySpider(ctx.em, ctx.grid,
-        ctx.transform.position, ctx.detection.radius);
-      if (spider != INVALID_ENTITY) {
+      // Look for visible spider first (higher priority threat) - from CACHED query
+      if (ctx.nearby.hasSpider()) {
         // Keep depositing ALARM to maintain swarm
         ctx.pheromones.DepositRadius(PHEROMONE_ALARM, ctx.transform.position,
           ALARM_DEPOSIT_RADIUS, ALARM_DEPOSIT_AMOUNT);
-        Vec2 spiderPos = ctx.em.GetComponent<CTransform>(spider).position;
+        Vec2 spiderPos = ctx.em.GetComponent<CTransform>(ctx.nearby.nearestSpider).position;
         MoveToward(ctx.transform, ctx.wander, ctx.speed.value, spiderPos);
         return;
       }
 
-      // Look for nearby enemy ants
-      Entity enemyAnt = FindNearbyEnemyAnt(ctx.em, ctx.grid,
-        ctx.transform.position, ctx.detection.radius, ctx.ant.teamId);
-      if (enemyAnt != INVALID_ENTITY) {
+      // Look for nearby enemy ants - from CACHED query
+      if (ctx.nearby.hasEnemyAnt()) {
         // Deposit alarm to attract allies to the fight
         ctx.pheromones.DepositRadius(PHEROMONE_ALARM, ctx.transform.position,
           ALARM_DEPOSIT_RADIUS, ALARM_DEPOSIT_AMOUNT * 0.5f);  // Less than spider
-        Vec2 enemyPos = ctx.em.GetComponent<CTransform>(enemyAnt).position;
+        Vec2 enemyPos = ctx.em.GetComponent<CTransform>(ctx.nearby.nearestEnemyAnt).position;
         MoveToward(ctx.transform, ctx.wander, ctx.speed.value, enemyPos);
         return;
       }

@@ -2,6 +2,7 @@
 #include "ECS/systems/AntContext.h"
 #include "ECS/systems/AntStates/AntStateHandlers.h"
 #include "ECS/systems/helpers/StuckDetector.h"
+#include "ECS/systems/helpers/NearbyQuery.h"
 #include "ECS/systems/physics/DragSystem.h"
 #include "ECS/Components.h"
 #include "ECS/Constants.h"
@@ -13,9 +14,10 @@ namespace AntSystem {
   // =============================================================================
 
   constexpr float HOME_PHEROMONE_DEPOSIT = 10.0f;
+  constexpr float ENEMY_AGGRO_RADIUS = 30.0f;  // Smaller radius for enemy detection
 
   // =============================================================================
-  // Context Builder
+  // Context Builder (now includes nearby query)
   // =============================================================================
 
   static AntContext BuildContext(
@@ -26,6 +28,15 @@ namespace AntSystem {
     ColonyPheromoneManager& colonyPheromones,
     float deltaTime
   ) {
+    auto& ant = em.GetComponent<CAnt>(e);
+    auto& transform = em.GetComponent<CTransform>(e);
+    auto& detection = em.GetComponent<CDetection>(e);
+
+    // Single spatial query for all nearby entities - MAJOR OPTIMIZATION
+    NearbyEntities nearby = NearbyQuery::QueryAll(
+      em, grid, transform.position, detection.radius, ant.teamId, ENEMY_AGGRO_RADIUS
+    );
+
     return AntContext(
       e,
       em,
@@ -33,13 +44,14 @@ namespace AntSystem {
       pheromones,
       colonyPheromones,
       deltaTime,
-      em.GetComponent<CAnt>(e),
-      em.GetComponent<CTransform>(e),
+      ant,
+      transform,
       em.GetComponent<CWander>(e),
       em.GetComponent<CSpeed>(e),
-      em.GetComponent<CDetection>(e),
+      detection,
       em.GetComponent<CTarget>(e),
-      em.GetComponent<CCombat>(e)
+      em.GetComponent<CCombat>(e),
+      nearby
     );
   }
 
@@ -50,7 +62,7 @@ namespace AntSystem {
   void Update(EntityManager& em, SpatialGrid& grid, PheromoneGrid& pheromones,
     ColonyPheromoneManager& colonyPheromones, float deltaTime) {
 
-    auto ants = em.GetEntitiesWithComponents(ANT | TRANSFORM | WANDER | SPEED);
+    const auto& ants = em.GetAnts();
 
     for (Entity e : ants) {
       // Build context once per entity
