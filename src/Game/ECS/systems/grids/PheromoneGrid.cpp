@@ -18,21 +18,24 @@ PheromoneGrid::PheromoneGrid(float worldWidth, float worldHeight, float cellSize
     m_decayTimers[i] = 0.0f;
   }
 
+  // Initialize diffusion buffer
+  m_diffusionBuffer.resize(totalCells, 0.0f);
+
   // Default configs - stagger the intervals so they don't all update same frame
-  // HOME: slow decay, follow ascending (toward colony)
-  m_configs[PHEROMONE_HOME] = { 0.95f, 1.0f, 255.0f };
+  // HOME: slow decay, low diffusion
+  m_configs[PHEROMONE_HOME] = { 0.95f, 1.0f, 255.0f, 0.08f };
   m_decayTimers[PHEROMONE_HOME] = 0.0f;
 
-  // FOOD: slow decay, follow descending (toward source)
-  m_configs[PHEROMONE_FOOD] = { 0.95f, 1.0f, 255.0f };
+  // FOOD: slow decay, low diffusion
+  m_configs[PHEROMONE_FOOD] = { 0.95f, 1.0f, 255.0f, 0.08f };
   m_decayTimers[PHEROMONE_FOOD] = 0.05f;  // Offset
 
-  // ALARM: fast decay, follow ascending (toward danger for attack)
-  m_configs[PHEROMONE_ALARM] = { 0.80f, 0.1f, 255.0f };
+  // ALARM: fast decay, high diffusion (spreads quickly)
+  m_configs[PHEROMONE_ALARM] = { 0.80f, 0.1f, 255.0f, 0.15f };
   m_decayTimers[PHEROMONE_ALARM] = 0.10f;  // Offset
 
-  // PLAYER: medium decay, follow ascending (toward where player drew)
-  m_configs[PHEROMONE_PLAYER] = { 0.90f, 0.12f, 255.0f };
+  // PLAYER: medium decay, medium diffusion (smooths player drawing)
+  m_configs[PHEROMONE_PLAYER] = { 0.92f, 0.5f, 255.0f, 0.12f };
   m_decayTimers[PHEROMONE_PLAYER] = 0.03f;  // Offset
 }
 
@@ -108,19 +111,51 @@ void PheromoneGrid::Update(float deltaTime) {
   for (int type = 0; type < PHEROMONE_COUNT; type++) {
     m_decayTimers[type] -= deltaTime;
 
-    // Time to decay this layer?
+    // Time to decay and diffuse this layer?
     if (m_decayTimers[type] <= 0.0f) {
       // Reset timer
       m_decayTimers[type] = m_configs[type].decayInterval;
 
-      // Apply decay to all cells
-      float multiplier = m_configs[type].decayMultiplier;
-      for (float& cell : m_layers[type]) {
-        cell *= multiplier;
+      float decayMult = m_configs[type].decayMultiplier;
+      float diffusionRate = m_configs[type].diffusionRate;
+      auto& layer = m_layers[type];
+
+      // Step 1: Calculate diffusion contributions into temp buffer
+      // Each cell gives diffusionRate of its value to its 4 neighbors
+      std::fill(m_diffusionBuffer.begin(), m_diffusionBuffer.end(), 0.0f);
+
+      for (int y = 0; y < m_rows; y++) {
+        for (int x = 0; x < m_cols; x++) {
+          int idx = GetCellIndex(x, y);
+          float cellValue = layer[idx];
+          
+          if (cellValue < 0.01f) continue;  // Skip empty cells
+
+          // Amount to spread to each neighbor (divide by 4 neighbors)
+          float spreadAmount = cellValue * diffusionRate * 0.25f;
+
+          // Spread to 4-connected neighbors
+          if (x > 0) m_diffusionBuffer[GetCellIndex(x - 1, y)] += spreadAmount;
+          if (x < m_cols - 1) m_diffusionBuffer[GetCellIndex(x + 1, y)] += spreadAmount;
+          if (y > 0) m_diffusionBuffer[GetCellIndex(x, y - 1)] += spreadAmount;
+          if (y < m_rows - 1) m_diffusionBuffer[GetCellIndex(x, y + 1)] += spreadAmount;
+
+          // Reduce this cell by total amount spread out
+          m_diffusionBuffer[idx] -= cellValue * diffusionRate;
+        }
+      }
+
+      // Step 2: Apply diffusion and decay together
+      for (int i = 0; i < static_cast<int>(layer.size()); i++) {
+        // Add diffusion delta
+        layer[i] += m_diffusionBuffer[i];
+        
+        // Apply decay
+        layer[i] *= decayMult;
 
         // Zero out very small values to avoid float dust
-        if (cell < 0.01f) {
-          cell = 0.0f;
+        if (layer[i] < 0.01f) {
+          layer[i] = 0.0f;
         }
       }
     }

@@ -15,8 +15,7 @@ struct PheromoneConfig {
   float decayMultiplier = 0.9f;   // Applied each decay tick (0.9 = lose 10%)
   float decayInterval = 0.1f;     // Seconds between decay ticks
   float maxIntensity = 255.0f;    // Cap value
-  // DEPRECATED
-  // bool followAscending = false;   // true = toward higher values, false = toward source
+  float diffusionRate = 0.1f;     // How much spreads to neighbors each tick (0.1 = 10%)
 };
 
 class PheromoneGrid {
@@ -34,6 +33,9 @@ private:
   // Config and timers per type (for staggered decay)
   std::array<PheromoneConfig, PHEROMONE_COUNT> m_configs;
   std::array<float, PHEROMONE_COUNT> m_decayTimers;
+
+  // Temp buffer for diffusion (reused to avoid allocations)
+  std::vector<float> m_diffusionBuffer;
 
   // Helpers
   int GetCellX(float x) const;
