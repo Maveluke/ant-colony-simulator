@@ -8,6 +8,11 @@ namespace RandomUtils {
     return min + (rand() / static_cast<float>(RAND_MAX)) * (max - min);
   }
 
+  // Generate random int between min and max (inclusive)
+  inline int Int(int min, int max) {
+    return min + (rand() % (max - min + 1));
+  }
+
   // Generate random bool with given probability of true (0.0 to 1.0)
   inline bool Bool(float probability = 0.5f) {
     return Float(0.0f, 1.0f) < probability;
