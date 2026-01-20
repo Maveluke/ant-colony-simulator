@@ -24,6 +24,11 @@ struct AntSpiderCollision {
   Entity spider;
 };
 
+struct AntAntCollision {
+  Entity ant1;
+  Entity ant2;
+};
+
 // Game Events
 struct EntityDeathEvent {
   Entity entity;
@@ -39,6 +44,7 @@ using EventBufferTuple = std::tuple<
   std::vector<AntColonyCollision>,
   std::vector<FoodColonyCollision>,
   std::vector<AntSpiderCollision>,
+  std::vector<AntAntCollision>,
   std::vector<EntityDeathEvent>,
   std::vector<FoodDepletedEvent>
 >;
@@ -67,6 +73,7 @@ public:
     std::get<std::vector<AntColonyCollision>>(m_events).clear();
     std::get<std::vector<FoodColonyCollision>>(m_events).clear();
     std::get<std::vector<AntSpiderCollision>>(m_events).clear();
+    std::get<std::vector<AntAntCollision>>(m_events).clear();
     std::get<std::vector<EntityDeathEvent>>(m_events).clear();
     std::get<std::vector<FoodDepletedEvent>>(m_events).clear();
   }

@@ -137,5 +137,43 @@ namespace CollisionSystem {
         }
       }
     }
+
+    // Ant <-> Ant collisions (different teams only)
+    for (size_t i = 0; i < ants.size(); ++i) {
+      Entity ant1 = ants[i];
+      auto& ant1Transform = em.GetComponent<CTransform>(ant1);
+      auto& ant1Collider = em.GetComponent<CCircleCollider>(ant1);
+      auto& ant1Comp = em.GetComponent<CAnt>(ant1);
+
+      // Query nearby entities
+      auto nearby = grid.Query(ant1Transform.position, ant1Collider.radius + 10.0f);
+
+      for (Entity other : nearby) {
+        // Skip self
+        if (other == ant1) continue;
+
+        // Check if it's an ant
+        if (!em.HasComponents(ANT | CIRCLE_COLLIDER, other)) {
+          continue;
+        }
+
+        auto& ant2Comp = em.GetComponent<CAnt>(other);
+
+        // Only collide if different teams (and both have valid teams)
+        if (ant1Comp.teamId == ant2Comp.teamId ||
+          ant1Comp.teamId == TEAM_NONE ||
+          ant2Comp.teamId == TEAM_NONE) {
+          continue;
+        }
+
+        auto& ant2Transform = em.GetComponent<CTransform>(other);
+        auto& ant2Collider = em.GetComponent<CCircleCollider>(other);
+
+        if (CirclesOverlap(ant1Transform.position, ant1Collider.radius,
+          ant2Transform.position, ant2Collider.radius)) {
+          events.Push(AntAntCollision{ ant1, other });
+        }
+      }
+    }
   }
 }
