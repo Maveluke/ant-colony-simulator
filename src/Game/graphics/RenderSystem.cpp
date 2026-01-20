@@ -1,43 +1,75 @@
 #include "RenderSystem.h"
 #include "DrawUtils.h"
 
-void MaveLib::RenderSystem::RenderQuad(const CTransform& transform, const CQuadRenderer& renderer) {
+void MaveLib::RenderSystem::RenderQuad(const CTransform& transform,
+  const CQuadRenderer& renderer,
+  const Camera& camera) {
+
+  float width = renderer.size.x * transform.scale.x;
+  float height = renderer.size.y * transform.scale.y;
+
+  // Frustum culling: skip if not visible
+  if (!camera.IsRectVisible(transform.position, width, height)) {
+    return;
+  }
+
   DrawUtils::DrawRectangle(
+    camera,
     transform.position.x,
     transform.position.y,
     renderer.z_depth,
-    renderer.size.x * transform.scale.x,
-    renderer.size.y * transform.scale.y,
-    renderer.r,
-    renderer.g,
-    renderer.b
-  );
-}
-void MaveLib::RenderSystem::RenderCircle(const CTransform& transform, const CCircleRenderer& renderer) {
-  DrawUtils::DrawCircle(
-    transform.position.x,
-    transform.position.y,
-    renderer.z_depth,
-    renderer.radius * transform.scale.x,
-    renderer.radius * transform.scale.y,
+    width,
+    height,
     renderer.r,
     renderer.g,
     renderer.b
   );
 }
 
-void MaveLib::RenderSystem::Render(EntityManager& entityManager) {
-  auto quad_entities = entityManager.GetEntitiesWithComponents(ComponentType::TRANSFORM | ComponentType::QUAD_RENDERER);
+void MaveLib::RenderSystem::RenderCircle(const CTransform& transform,
+  const CCircleRenderer& renderer,
+  const Camera& camera) {
+
+  float radiusX = renderer.radius * transform.scale.x;
+  float radiusY = renderer.radius * transform.scale.y;
+  float maxRadius = (radiusX > radiusY) ? radiusX : radiusY;
+
+  // Frustum culling: skip if not visible
+  if (!camera.IsCircleVisible(transform.position, maxRadius)) {
+    return;
+  }
+
+  DrawUtils::DrawCircle(
+    camera,
+    transform.position.x,
+    transform.position.y,
+    renderer.z_depth,
+    radiusX,
+    radiusY,
+    renderer.r,
+    renderer.g,
+    renderer.b
+  );
+}
+
+void MaveLib::RenderSystem::Render(EntityManager& entityManager, const Camera& camera) {
+  // Render quads
+  auto quad_entities = entityManager.GetEntitiesWithComponents(
+    ComponentType::TRANSFORM | ComponentType::QUAD_RENDERER);
+
   for (const auto& entity : quad_entities) {
     const auto& transform = entityManager.GetComponent<CTransform>(entity);
     const auto& renderer = entityManager.GetComponent<CQuadRenderer>(entity);
-    RenderQuad(transform, renderer);
+    RenderQuad(transform, renderer, camera);
   }
 
-  auto circle_entities = entityManager.GetEntitiesWithComponents(ComponentType::TRANSFORM | ComponentType::CIRCLE_RENDERER);
+  // Render circles
+  auto circle_entities = entityManager.GetEntitiesWithComponents(
+    ComponentType::TRANSFORM | ComponentType::CIRCLE_RENDERER);
+
   for (const auto& entity : circle_entities) {
     const auto& transform = entityManager.GetComponent<CTransform>(entity);
     const auto& renderer = entityManager.GetComponent<CCircleRenderer>(entity);
-    RenderCircle(transform, renderer);
+    RenderCircle(transform, renderer, camera);
   }
 }
