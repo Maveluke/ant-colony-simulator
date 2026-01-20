@@ -29,7 +29,22 @@ namespace SpawnUtils {
     return 8.0f + std::min(foodAmount / 100.0f, 1.0f) * 12.0f;  // 8-20 radius
   }
 
-  Entity SpawnAnt(EntityManager& em, const Vec2& position) {
+  void GetTeamColor(TeamId team, float& r, float& g, float& b) {
+    switch (team) {
+      case TEAM_BLUE:
+        r = 0.2f; g = 0.4f; b = 0.9f;  // Blue
+        break;
+      case TEAM_RED:
+        r = 0.9f; g = 0.2f; b = 0.2f;  // Red
+        break;
+      case TEAM_NONE:
+      default:
+        r = 0.6f; g = 0.4f; b = 0.2f;  // Brown (original)
+        break;
+    }
+  }
+
+  Entity SpawnAnt(EntityManager& em, const Vec2& position, TeamId team, Entity homeColony) {
     Entity e = em.AddEntityImmediate("ant");
 
     // Transform
@@ -43,10 +58,12 @@ namespace SpawnUtils {
     auto& collider = em.GetComponent<CCircleCollider>(e);
     collider.radius = 3.0f;
 
-    // Ant marker
+    // Ant marker with team info
     em.AddComponent(ANT, e);
     auto& ant = em.GetComponent<CAnt>(e);
     ant.state = AntState::WANDER;
+    ant.teamId = team;
+    ant.homeColony = homeColony;
 
     // Wander behavior
     em.AddComponent(WANDER, e);
@@ -58,12 +75,12 @@ namespace SpawnUtils {
     // Speed
     em.AddComponent(SPEED, e);
     auto& speed = em.GetComponent<CSpeed>(e);
-    speed.value = 50.0f;
+    speed.value = 40.0f;
 
     // Detection
     em.AddComponent(DETECTION, e);
     auto& detection = em.GetComponent<CDetection>(e);
-    detection.radius = 100.0f;
+    detection.radius = 50.0f;
 
     // Target (initially none)
     em.AddComponent(TARGET, e);
@@ -73,26 +90,24 @@ namespace SpawnUtils {
     auto& dragging = em.GetComponent<CDragging>(e);
     dragging.target = INVALID_ENTITY;
 
-    // Health 
+    // Health
     em.AddComponent(HEALTH, e);
     auto& health = em.GetComponent<CHealth>(e);
-    health.current = 1.0f;
-    health.max = 1.0f;
+    health.current = 5.0f;
+    health.max = 5.0f;
 
-    // Combat 
+    // Combat
     em.AddComponent(COMBAT, e);
     auto& combat = em.GetComponent<CCombat>(e);
     combat.attackDamage = 1.0f;
     combat.attackCooldown = 0.5f;
     combat.attackTimer = 0.0f;
 
-    // Renderer (brown)
+    // Renderer - color based on team
     em.AddComponent(CIRCLE_RENDERER, e);
     auto& renderer = em.GetComponent<CCircleRenderer>(e);
     renderer.radius = collider.radius;
-    renderer.r = 0.6f;
-    renderer.g = 0.4f;
-    renderer.b = 0.2f;
+    GetTeamColor(team, renderer.r, renderer.g, renderer.b);
 
     return e;
   }
@@ -187,7 +202,7 @@ namespace SpawnUtils {
     return TrySpawnFood(em, position, amount);
   }
 
-  Entity SpawnColony(EntityManager& em, const Vec2& position) {
+  Entity SpawnColony(EntityManager& em, const Vec2& position, TeamId team) {
     Entity e = em.AddEntityImmediate("colony");
 
     // Transform
@@ -196,21 +211,26 @@ namespace SpawnUtils {
     transform.position = position;
     transform.velocity = Vec2(0.0f, 0.0f);
 
-    // Colony data
+    // Colony data with team
     em.AddComponent(COLONY, e);
     auto& colony = em.GetComponent<CColony>(e);
     colony.storedFood = 0.0f;
     colony.spawnThreshold = 10.0f;
     colony.spawnTimer = 0.0f;
     colony.spawnCooldown = 0.5f;
+    colony.teamId = team;
 
-    // Renderer (dark brown quad)
+    // Renderer - color based on team (darker shade)
     em.AddComponent(QUAD_RENDERER, e);
     auto& renderer = em.GetComponent<CQuadRenderer>(e);
     renderer.size = Vec2(40.0f, 40.0f);
-    renderer.r = 0.4f;
-    renderer.g = 0.2f;
-    renderer.b = 0.1f;
+
+    // Get team color but make it darker for the colony
+    float r, g, b;
+    GetTeamColor(team, r, g, b);
+    renderer.r = r * 0.6f;  // Darker version
+    renderer.g = g * 0.6f;
+    renderer.b = b * 0.6f;
 
     return e;
   }
@@ -224,7 +244,7 @@ namespace SpawnUtils {
     transform.position = position;
     transform.velocity = Vec2(0.0f, 0.0f);
 
-    // Collider 
+    // Collider
     em.AddComponent(CIRCLE_COLLIDER, e);
     auto& collider = em.GetComponent<CCircleCollider>(e);
     collider.radius = 12.0f;
@@ -239,20 +259,20 @@ namespace SpawnUtils {
     wander.direction = Vec2(cos(angle), sin(angle));
     wander.timer = 0.0f;
 
-    // Speed 
+    // Speed
     em.AddComponent(SPEED, e);
     auto& speed = em.GetComponent<CSpeed>(e);
-    speed.value = 80.0f;
+    speed.value = 50.0f;
 
     // Detection (hunt radius)
     em.AddComponent(DETECTION, e);
     auto& detection = em.GetComponent<CDetection>(e);
-    detection.radius = 150.0f;
+    detection.radius = 100.0f;
 
     // Target (initially none)
     em.AddComponent(TARGET, e);
 
-    // Health 
+    // Health
     em.AddComponent(HEALTH, e);
     auto& health = em.GetComponent<CHealth>(e);
     health.current = 50.0f;
@@ -262,23 +282,16 @@ namespace SpawnUtils {
     em.AddComponent(COMBAT, e);
     auto& combat = em.GetComponent<CCombat>(e);
     combat.attackDamage = 100.0f;
-    combat.attackCooldown = 0.3f;
+    combat.attackCooldown = 1.0f;
     combat.attackTimer = 0.0f;
 
-    // Draggable (when dead, can be dragged)
-    em.AddComponent(DRAGGABLE, e);
-    auto& draggable = em.GetComponent<CDraggable>(e);
-    draggable.weight = 10.0f;
-    draggable.maxDraggers = MAX_DRAGGERS;
-    draggable.draggerCount = 0;
-
-    // Renderer (red)
+    // Renderer (dark purple for spider - distinct from teams)
     em.AddComponent(CIRCLE_RENDERER, e);
     auto& renderer = em.GetComponent<CCircleRenderer>(e);
     renderer.radius = collider.radius;
-    renderer.r = 0.8f;
+    renderer.r = 0.5f;
     renderer.g = 0.1f;
-    renderer.b = 0.1f;
+    renderer.b = 0.5f;
 
     return e;
   }

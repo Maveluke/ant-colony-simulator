@@ -7,6 +7,13 @@ constexpr int MAX_DRAGGERS = 8;
 constexpr int MAX_FOOD_ENTITIES = 200;
 constexpr float MAX_FOOD_AMOUNT = 500.0f;
 
+// Team IDs for colonies and ants
+enum TeamId {
+  TEAM_NONE = 0,
+  TEAM_BLUE = 1,
+  TEAM_RED = 2
+};
+
 // TODO: Rearrange later after finalized
 enum ComponentType {
   NONE = 0,
@@ -112,6 +119,8 @@ enum class AntState {
 
 struct CAnt {
   AntState state = AntState::WANDER;
+  TeamId teamId = TEAM_NONE;        // Which colony this ant belongs to
+  Entity homeColony = INVALID_ENTITY; // Reference to home colony entity
 };
 
 struct CFood {
@@ -123,6 +132,7 @@ struct CColony {
   float spawnThreshold = 10.0f;
   float spawnTimer = 0.0f;
   float spawnCooldown = 0.5f;
+  TeamId teamId = TEAM_NONE;        // Which team this colony belongs to
 };
 
 struct CSpider {};

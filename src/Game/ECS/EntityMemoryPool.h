@@ -6,7 +6,7 @@
 #include <vector>
 #include <string>
 
-constexpr uint32_t MAX_ENTITIES{ 5000 };
+constexpr uint32_t MAX_ENTITIES{ 10000 };
 
 using EntityComponentVectorTuple =
 std::tuple<
