@@ -39,6 +39,25 @@ void MaveLib::RenderSystem::RenderCircle(const CTransform& transform,
     return;
   }
 
+  // LOD: Calculate screen-space radius for segment count
+  float zoom = camera.GetZoom();
+  float screenRadius = maxRadius * zoom;
+
+  // Choose segments based on screen size
+  int segments;
+  if (screenRadius < 3.0f) {
+    segments = 4;   // Tiny - diamond shape
+  }
+  else if (screenRadius < 8.0f) {
+    segments = 6;   // Small - hexagon
+  }
+  else if (screenRadius < 20.0f) {
+    segments = 8;   // Medium - octagon
+  }
+  else {
+    segments = 12;  // Large - smooth circle
+  }
+
   DrawUtils::DrawCircle(
     camera,
     transform.position.x,
@@ -48,7 +67,8 @@ void MaveLib::RenderSystem::RenderCircle(const CTransform& transform,
     radiusY,
     renderer.r,
     renderer.g,
-    renderer.b
+    renderer.b,
+    segments
   );
 }
 

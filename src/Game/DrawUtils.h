@@ -13,10 +13,12 @@ namespace DrawUtils {
     float r, float g, float b);
 
   // Draw a circle in world space
+  // segments: number of triangles (LOD - use fewer for distant/small objects)
   void DrawCircle(const MaveLib::Camera& camera,
     float worldX, float worldY, float z,
     float radiusX, float radiusY,
-    float r, float g, float b);
+    float r, float g, float b,
+    int segments = 8);
 
   // Draw a line in world space
   void DrawLine(const MaveLib::Camera& camera,

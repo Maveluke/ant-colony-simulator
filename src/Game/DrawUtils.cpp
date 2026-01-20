@@ -40,7 +40,8 @@ void DrawUtils::DrawRectangle(const MaveLib::Camera& camera,
 void DrawUtils::DrawCircle(const MaveLib::Camera& camera,
   float worldX, float worldY, float z,
   float radiusX, float radiusY,
-  float r, float g, float b) {
+  float r, float g, float b,
+  int segments) {
 
   Vec2 screenPos = camera.WorldToScreen(Vec2(worldX, worldY));
   float zoom = camera.GetZoom();
@@ -50,20 +51,29 @@ void DrawUtils::DrawCircle(const MaveLib::Camera& camera,
   float x = screenPos.x;
   float y = screenPos.y;
 
-  int segments = 50;
-  for (int i = 0; i <= segments; i++) {
-    float angle = i * 2.0f * 3.1415926f / segments;
-    float nextAngle = (i + 1) * 2.0f * 3.1415926f / segments;
-    float x1 = x + cosf(angle) * scaledRadiusX;
-    float y1 = y + sinf(angle) * scaledRadiusY;
-    float x2 = x + cosf(nextAngle) * scaledRadiusX;
-    float y2 = y + sinf(nextAngle) * scaledRadiusY;
+  // Pre-compute angle increment
+  float angleStep = 2.0f * 3.1415926f / segments;
+
+  // Start with first point
+  float angle = 0.0f;
+  float x1 = x + scaledRadiusX;  // cos(0) = 1
+  float y1 = y;                   // sin(0) = 0
+
+  for (int i = 0; i < segments; i++) {
+    angle += angleStep;
+    float x2 = x + cosf(angle) * scaledRadiusX;
+    float y2 = y + sinf(angle) * scaledRadiusY;
+
     App::DrawTriangle(
       x, y, z, 1.0f,
       x1, y1, z, 1.0f,
       x2, y2, z, 1.0f,
       r, g, b, r, g, b, r, g, b
     );
+
+    // Next triangle starts where this one ended
+    x1 = x2;
+    y1 = y2;
   }
 }
 
