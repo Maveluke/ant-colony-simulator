@@ -3,6 +3,7 @@
 #include "ECS/Components.h"
 #include "ECS/systems/grids/SpatialGrid.h"
 #include "ECS/systems/grids/PheromoneGrid.h"
+#include "ECS/systems/grids/ColonyPheromoneManager.h"
 
 // Context struct passed to all ant state handlers
 // Bundles entity, system references, and component references
@@ -14,7 +15,8 @@ struct AntContext {
   // System references
   EntityManager& em;
   SpatialGrid& grid;
-  PheromoneGrid& pheromones;
+  PheromoneGrid& pheromones;          // Shared pheromones (FOOD, ALARM, PLAYER)
+  ColonyPheromoneManager& colonyPheromones;  // Per-team HOME pheromones
   float deltaTime;
 
   // Component references (fetched once per entity)
@@ -32,6 +34,7 @@ struct AntContext {
     EntityManager& em_,
     SpatialGrid& grid_,
     PheromoneGrid& pheromones_,
+    ColonyPheromoneManager& colonyPheromones_,
     float dt,
     CAnt& ant_,
     CTransform& transform_,
@@ -45,6 +48,7 @@ struct AntContext {
     , em(em_)
     , grid(grid_)
     , pheromones(pheromones_)
+    , colonyPheromones(colonyPheromones_)
     , deltaTime(dt)
     , ant(ant_)
     , transform(transform_)

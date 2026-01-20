@@ -7,6 +7,7 @@ namespace AntStates {
 
     // Constants
     constexpr float FOOD_TRAIL_THRESHOLD = 0.0f;
+    constexpr float DIRECTION_LERP_FACTOR = 0.5f;  // Direction smoothing
 
     // Local Helpers
     static bool TickEscapeTimer(CWander& wander, float deltaTime) {
@@ -76,6 +77,37 @@ namespace AntStates {
       return nearestFood;
     }
 
+    // Find nearest enemy ant (different team) within radius
+    static Entity FindNearbyEnemyAnt(EntityManager& em, SpatialGrid& grid,
+      const Vec2& position, float radius, TeamId myTeam) {
+      auto nearby = grid.Query(position, radius);
+
+      float closestDistSq = radius * radius;
+      Entity closestEnemy = INVALID_ENTITY;
+
+      for (Entity other : nearby) {
+        if (!em.HasComponents(ANT | TRANSFORM, other)) continue;
+
+        auto& otherAnt = em.GetComponent<CAnt>(other);
+
+        // Skip same team or no team
+        if (otherAnt.teamId == myTeam || otherAnt.teamId == TEAM_NONE) continue;
+
+        auto& otherTransform = em.GetComponent<CTransform>(other);
+        float distSq = position.DistanceSquared(otherTransform.position);
+
+        if (distSq < closestDistSq) {
+          closestDistSq = distSq;
+          closestEnemy = other;
+        }
+      }
+
+      return closestEnemy;
+    }
+
+    // Aggro radius for enemy ant detection (smaller than full detection for performance)
+    constexpr float ENEMY_AGGRO_RADIUS = 30.0f;
+
     // State Update
     void Update(AntContext& ctx) {
       // Check for spider threat (direct sighting only - we're focused on food)
@@ -83,6 +115,15 @@ namespace AntStates {
         ctx.transform.position, ctx.detection.radius);
       if (spider != INVALID_ENTITY) {
         ctx.ant.state = AntState::FLEE;
+        return;
+      }
+
+      // Check for nearby enemy ants - attack! (use smaller aggro radius for performance)
+      float aggroRadius = (ctx.detection.radius < ENEMY_AGGRO_RADIUS) ? ctx.detection.radius : ENEMY_AGGRO_RADIUS;
+      Entity enemyAnt = FindNearbyEnemyAnt(ctx.em, ctx.grid,
+        ctx.transform.position, aggroRadius, ctx.ant.teamId);
+      if (enemyAnt != INVALID_ENTITY) {
+        ctx.ant.state = AntState::ATTACK;
         return;
       }
 
@@ -117,7 +158,9 @@ namespace AntStates {
           ctx.pheromones, PHEROMONE_FOOD, ctx.transform.position, ctx.wander.direction,
           PheromoneNavigator::WIDE_CONE_ANGLE);
         if (trailDir.LengthSquared() > 0.0001f) {
-          ctx.wander.direction = trailDir;
+          // Smooth direction change to prevent jittery movement
+          ctx.wander.direction = ctx.wander.direction.Lerp(trailDir, DIRECTION_LERP_FACTOR);
+          ctx.wander.direction.Normalize();
         }
       }
 

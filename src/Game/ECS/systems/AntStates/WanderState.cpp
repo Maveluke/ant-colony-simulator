@@ -62,6 +62,9 @@ namespace AntStates {
     // Alarm thresholds
     constexpr float ALARM_ATTACK_THRESHOLD = 20.0f;
 
+    // Direction smoothing - blend factor (0 = no change, 1 = instant snap)
+    constexpr float DIRECTION_LERP_FACTOR = 0.5f;
+
     enum class AlarmResponse { NONE, FLEE, ATTACK };
 
     static AlarmResponse EvaluateAlarmResponse(const PheromoneGrid& pheromones,
@@ -77,13 +80,52 @@ namespace AntStates {
       return AlarmResponse::NONE;
     }
 
+    // Find nearest enemy ant (different team) within radius
+    static Entity FindNearbyEnemyAnt(EntityManager& em, SpatialGrid& grid,
+      const Vec2& position, float radius, TeamId myTeam) {
+      auto nearby = grid.Query(position, radius);
+
+      float closestDistSq = radius * radius;
+      Entity closestEnemy = INVALID_ENTITY;
+
+      for (Entity other : nearby) {
+        if (!em.HasComponents(ANT | TRANSFORM, other)) continue;
+
+        auto& otherAnt = em.GetComponent<CAnt>(other);
+
+        // Skip same team or no team
+        if (otherAnt.teamId == myTeam || otherAnt.teamId == TEAM_NONE) continue;
+
+        auto& otherTransform = em.GetComponent<CTransform>(other);
+        float distSq = position.DistanceSquared(otherTransform.position);
+
+        if (distSq < closestDistSq) {
+          closestDistSq = distSq;
+          closestEnemy = other;
+        }
+      }
+
+      return closestEnemy;
+    }
+
+    // Aggro radius for enemy ant detection (smaller than full detection for performance)
+    constexpr float ENEMY_AGGRO_RADIUS = 30.0f;
+
     static bool CheckAndHandleThreat(CAnt& ant, EntityManager& em, SpatialGrid& grid,
       PheromoneGrid& pheromones,
       const Vec2& position, float detectionRadius) {
-      // Direct spider sighting takes priority
+      // Direct spider sighting takes priority - flee!
       Entity spider = FindNearbySpider(em, grid, position, detectionRadius);
       if (spider != INVALID_ENTITY) {
         ant.state = AntState::FLEE;
+        return true;
+      }
+
+      // Check for nearby enemy ants - attack! (use smaller aggro radius for performance)
+      float aggroRadius = (detectionRadius < ENEMY_AGGRO_RADIUS) ? detectionRadius : ENEMY_AGGRO_RADIUS;
+      Entity enemyAnt = FindNearbyEnemyAnt(em, grid, position, aggroRadius, ant.teamId);
+      if (enemyAnt != INVALID_ENTITY) {
+        ant.state = AntState::ATTACK;
         return true;
       }
 
@@ -131,6 +173,18 @@ namespace AntStates {
         PheromoneNavigator::WIDE_CONE_ANGLE);
       if (foodPheromone.LengthSquared() > 0.0001f) {
         ctx.ant.state = AntState::FOLLOW_TRAIL;
+        return;
+      }
+
+      // Check for PLAYER pheromone trail - follow where the player draws!
+      Vec2 playerPheromone = PheromoneNavigator::SampleBestDirection(
+        ctx.pheromones, PHEROMONE_PLAYER, ctx.transform.position, ctx.wander.direction,
+        PheromoneNavigator::WIDE_CONE_ANGLE);
+      if (playerPheromone.LengthSquared() > 0.0001f) {
+        // Smooth direction change to prevent jittery movement
+        ctx.wander.direction = ctx.wander.direction.Lerp(playerPheromone, DIRECTION_LERP_FACTOR);
+        ctx.wander.direction.Normalize();
+        ctx.transform.velocity = ctx.wander.direction * ctx.speed.value;
         return;
       }
 

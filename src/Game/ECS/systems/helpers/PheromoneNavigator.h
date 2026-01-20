@@ -4,7 +4,7 @@
 
 namespace PheromoneNavigator {
 
-  constexpr int NUM_SAMPLES = 8;
+  constexpr int NUM_SAMPLES = 5;                 // Reduced from 8 for performance
   constexpr float SAMPLE_MIN_DISTANCE = 16.0f;
   constexpr float SAMPLE_MAX_DISTANCE = 48.0f;
   constexpr float SAMPLE_INTERVAL = 1.0f;        // Seconds between samples

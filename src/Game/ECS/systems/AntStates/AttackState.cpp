@@ -41,6 +41,34 @@ namespace AntStates {
       return grid.QueryNearest(position, radius, SPIDER | TRANSFORM, em);
     }
 
+    // Find nearest enemy ant (different team) within radius
+    static Entity FindNearbyEnemyAnt(EntityManager& em, SpatialGrid& grid,
+      const Vec2& position, float radius, TeamId myTeam) {
+      auto nearby = grid.Query(position, radius);
+
+      float closestDistSq = radius * radius;
+      Entity closestEnemy = INVALID_ENTITY;
+
+      for (Entity other : nearby) {
+        if (!em.HasComponents(ANT | TRANSFORM, other)) continue;
+
+        auto& otherAnt = em.GetComponent<CAnt>(other);
+
+        // Skip same team or no team
+        if (otherAnt.teamId == myTeam || otherAnt.teamId == TEAM_NONE) continue;
+
+        auto& otherTransform = em.GetComponent<CTransform>(other);
+        float distSq = position.DistanceSquared(otherTransform.position);
+
+        if (distSq < closestDistSq) {
+          closestDistSq = distSq;
+          closestEnemy = other;
+        }
+      }
+
+      return closestEnemy;
+    }
+
     // State Update
     void Update(AntContext& ctx) {
       // Check if swarm has dispersed - should we retreat?
@@ -50,7 +78,7 @@ namespace AntStates {
         return;
       }
 
-      // Look for visible spider
+      // Look for visible spider first (higher priority threat)
       Entity spider = FindNearbySpider(ctx.em, ctx.grid,
         ctx.transform.position, ctx.detection.radius);
       if (spider != INVALID_ENTITY) {
@@ -62,7 +90,19 @@ namespace AntStates {
         return;
       }
 
-      // No visible spider - follow alarm pheromone to find the fight
+      // Look for nearby enemy ants
+      Entity enemyAnt = FindNearbyEnemyAnt(ctx.em, ctx.grid,
+        ctx.transform.position, ctx.detection.radius, ctx.ant.teamId);
+      if (enemyAnt != INVALID_ENTITY) {
+        // Deposit alarm to attract allies to the fight
+        ctx.pheromones.DepositRadius(PHEROMONE_ALARM, ctx.transform.position,
+          ALARM_DEPOSIT_RADIUS, ALARM_DEPOSIT_AMOUNT * 0.5f);  // Less than spider
+        Vec2 enemyPos = ctx.em.GetComponent<CTransform>(enemyAnt).position;
+        MoveToward(ctx.transform, ctx.wander, ctx.speed.value, enemyPos);
+        return;
+      }
+
+      // No visible threats - follow alarm pheromone to find the fight
       if (TickEscapeTimer(ctx.wander, ctx.deltaTime)) {
         ApplyDirectionAsVelocity(ctx.transform, ctx.wander, ctx.speed.value);
         return;

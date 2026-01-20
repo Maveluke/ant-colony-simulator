@@ -11,10 +11,14 @@ namespace StuckDetector {
     float distanceThreshold,
     float timeThreshold
   ) {
-    // Check distance moved since last position update
-    float distMoved = (currentPosition - wander.lastPosition).Length();
+    // Check per-axis movement since last position update
+    // This catches oscillating behavior where total distance is fine but no net progress
+    Vec2 delta = currentPosition - wander.lastPosition;
+    float absX = (delta.x < 0) ? -delta.x : delta.x;
+    float absY = (delta.y < 0) ? -delta.y : delta.y;
 
-    if (distMoved < distanceThreshold) {
+    // Stuck if BOTH axes haven't moved enough
+    if (absX < distanceThreshold && absY < distanceThreshold) {
       wander.stuckTimer += deltaTime;
     }
     else {
