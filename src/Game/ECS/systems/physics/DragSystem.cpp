@@ -12,7 +12,7 @@ namespace DragSystem {
   constexpr float MIN_EFFICIENCY = 0.2f;  // Minimum speed multiplier (even 1 ant can slowly drag)
 
   // Monte Carlo sampling constants (shared with AntSystem concept)
-  constexpr int NUM_PHEROMONE_SAMPLES = 8;
+  constexpr int NUM_PHEROMONE_SAMPLES = 5;  // Reduced from 8 for performance
   constexpr float SAMPLE_MIN_DISTANCE = 16.0f;
   constexpr float SAMPLE_MAX_DISTANCE = 48.0f;
   constexpr float PHEROMONE_SAMPLE_INTERVAL = 1.0f;
@@ -23,17 +23,18 @@ namespace DragSystem {
   constexpr float STUCK_TIME_THRESHOLD = 0.6f;       // Time before considered stuck
   constexpr float STUCK_ESCAPE_ANGLE = PI * 0.75f;   // Turn 135 degrees when stuck
   constexpr float ESCAPE_DURATION = 0.5f;            // How long to keep escaping direction
+  constexpr float DIRECTION_LERP_FACTOR = 0.5f;      // Direction smoothing
 
   // Helper: Generate random float between min and max
   static float RandomFloat(float min, float max) {
     return min + (rand() / static_cast<float>(RAND_MAX)) * (max - min);
   }
 
-  // Monte Carlo pheromone sampling from a position
+  // Monte Carlo pheromone sampling from a position using team-specific home pheromones
   // Returns direction toward the best pheromone sample, or zero vector if none found
-  static Vec2 SampleBestPheromoneDirection(
-    const PheromoneGrid& pheromones,
-    PheromoneType type,
+  static Vec2 SampleBestHomeDirection(
+    ColonyPheromoneManager& colonyPheromones,
+    TeamId team,
     const Vec2& position,
     const Vec2& currentDirection,
     const Vec2& homePosition,
@@ -52,7 +53,7 @@ namespace DragSystem {
       samplePos.x = position.x + cos(sampleAngle) * sampleDistance;
       samplePos.y = position.y + sin(sampleAngle) * sampleDistance;
 
-      float intensity = pheromones.GetIntensity(type, samplePos);
+      float intensity = colonyPheromones.GetHomeIntensity(team, samplePos);
 
       if (intensity > bestIntensity) {
         bestIntensity = intensity;
@@ -82,11 +83,12 @@ namespace DragSystem {
 
   bool StartDragging(EntityManager& em, Entity dragger, Entity target) {
     // Validate entities
-    if (!em.HasComponents(DRAGGING, dragger)) return false;
+    if (!em.HasComponents(DRAGGING | ANT, dragger)) return false;
     if (!em.HasComponents(DRAGGABLE | TRANSFORM, target)) return false;
 
     auto& dragging = em.GetComponent<CDragging>(dragger);
     auto& draggable = em.GetComponent<CDraggable>(target);
+    auto& draggerAnt = em.GetComponent<CAnt>(dragger);
 
     // Already dragging something?
     if (dragging.target != INVALID_ENTITY) {
@@ -96,6 +98,18 @@ namespace DragSystem {
     // Target at max draggers?
     if (draggable.draggerCount >= draggable.maxDraggers) {
       return false;
+    }
+
+    // If food already has draggers, check team compatibility
+    if (draggable.draggerCount > 0) {
+      Entity firstDragger = draggable.draggers[0];
+      if (em.HasComponents(ANT, firstDragger)) {
+        auto& firstDraggerAnt = em.GetComponent<CAnt>(firstDragger);
+        // Only allow same team to help drag
+        if (draggerAnt.teamId != firstDraggerAnt.teamId) {
+          return false;
+        }
+      }
     }
 
     dragging.target = target;
@@ -136,10 +150,9 @@ namespace DragSystem {
     return em.GetComponent<CDragging>(entity).target != INVALID_ENTITY;
   }
 
-  void Update(EntityManager& em, PheromoneGrid& pheromones, float deltaTime) {
+  void Update(EntityManager& em, PheromoneGrid& pheromones,
+    ColonyPheromoneManager& colonyPheromones, float deltaTime) {
     auto draggables = em.GetEntitiesWithComponents(DRAGGABLE | TRANSFORM);
-    auto colony = em.GetEntitiesWithComponents(COLONY | TRANSFORM);
-    auto colonyTransform = em.GetComponent<CTransform>(colony[0]);
 
     for (Entity e : draggables) {
       auto& draggable = em.GetComponent<CDraggable>(e);
@@ -153,12 +166,20 @@ namespace DragSystem {
 
       // Get the first dragger to use its wander component for timing and direction state
       Entity firstDragger = draggable.draggers[0];
-      if (!em.HasComponents(TRANSFORM | WANDER, firstDragger)) {
+      if (!em.HasComponents(TRANSFORM | WANDER | ANT, firstDragger)) {
         foodTransform.velocity = Vec2(0.0f, 0.0f);
         continue;
       }
 
       auto& leaderWander = em.GetComponent<CWander>(firstDragger);
+      auto& leaderAnt = em.GetComponent<CAnt>(firstDragger);
+
+      // Get the leader's home colony position for fallback navigation
+      Vec2 homeColonyPos = foodTransform.position;  // Default fallback
+      if (leaderAnt.homeColony != INVALID_ENTITY &&
+        em.HasComponents(TRANSFORM, leaderAnt.homeColony)) {
+        homeColonyPos = em.GetComponent<CTransform>(leaderAnt.homeColony).position;
+      }
 
       // Use the leader's pheromone timer for the whole group
       leaderWander.pheromoneTimer -= deltaTime;
@@ -174,23 +195,30 @@ namespace DragSystem {
       if (leaderWander.escapeTimer <= 0.0f && leaderWander.pheromoneTimer <= 0.0f) {
         leaderWander.pheromoneTimer = PHEROMONE_SAMPLE_INTERVAL;
 
-        // Sample HOME pheromone from the FOOD's position (not ant's position)
-        // This way all ants agree on the same direction
-        Vec2 homeDir = SampleBestPheromoneDirection(
-          pheromones, PHEROMONE_HOME, foodTransform.position,
-          leaderWander.direction, colonyTransform.position, NARROW_CONE_ANGLE
+        // Sample team-specific HOME pheromone from the FOOD's position
+        // This way all ants agree on the same direction and follow their own colony's trail
+        Vec2 homeDir = SampleBestHomeDirection(
+          colonyPheromones, leaderAnt.teamId, foodTransform.position,
+          leaderWander.direction, homeColonyPos, NARROW_CONE_ANGLE
         );
 
         if (homeDir.LengthSquared() > 0.0001f) {
-          groupDirection = homeDir;
-          leaderWander.direction = homeDir;  // Update leader's direction for next sample
+          // Smooth direction change to prevent jittery movement
+          groupDirection = leaderWander.direction.Lerp(homeDir, DIRECTION_LERP_FACTOR);
+          groupDirection.Normalize();
+          leaderWander.direction = groupDirection;  // Update leader's direction for next sample
         }
         // Else: keep current direction
       }
 
-      // Stuck detection for drag groups (use food position)
-      float distMoved = (foodTransform.position - leaderWander.lastPosition).Length();
-      if (distMoved < STUCK_DISTANCE_THRESHOLD) {
+      // Stuck detection for drag groups - check per-axis movement
+      // This catches oscillating behavior where total distance is fine but no net progress
+      Vec2 delta = foodTransform.position - leaderWander.lastPosition;
+      float absX = (delta.x < 0) ? -delta.x : delta.x;
+      float absY = (delta.y < 0) ? -delta.y : delta.y;
+
+      // Stuck if BOTH axes haven't moved enough
+      if (absX < STUCK_DISTANCE_THRESHOLD && absY < STUCK_DISTANCE_THRESHOLD) {
         leaderWander.stuckTimer += deltaTime;
       }
       else {
