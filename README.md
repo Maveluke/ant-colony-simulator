@@ -1,5 +1,6 @@
-#Ubi Contest API for Mac & Windows
+# Ant Simulator Game
 
+For explanation and gameplay click [here](https://youtu.be/Befm5wt28eA)
 ## To build and run the game
 
 ### Windows
