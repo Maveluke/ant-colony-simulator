@@ -1,6 +1,13 @@
-# Ant Simulator Game
+# Ant Colony Simulator Game
 
-For explanation and gameplay click [here](https://youtu.be/Befm5wt28eA)
+For explanation and gameplay click [here](https://youtu.be/Befm5wt28eA).
+
+## Overview
+This is my submission for Ubisoft NEXT 2026.
+Ant Colony Simulator is a simulation game where two rival colonies compete for resources. Influence the outcome by placing food, drawing pheromone trails, or unleashing spiders. The fate of both colonies is in your hands.
+
+Gameplay and technical details can be found [here](https://github.com/Maveluke/ant-colony-simulator/blob/master/DOCUMENTATION.md). 
+
 ## To build and run the game
 
 ### Windows
@@ -18,7 +25,7 @@ For explanation and gameplay click [here](https://youtu.be/Befm5wt28eA)
  script
 
 
-## Dependencies
+<!-- ## Dependencies
 
 ### Windows
 * Visual Studio 2022 Community https://visualstudio.microsoft.com/vs/community/
@@ -35,7 +42,7 @@ For explanation and gameplay click [here](https://youtu.be/Befm5wt28eA)
 * SDL3
     * This is a cross-platform utility library. Install by running [brew install SDL3] in a macos terminal
 * XCode command line tools
-    * This has the MacOS build system and compiler. It should be installed automatically when installing homebrew, but can be installed through the MacOS terminal.
+    * This has the MacOS build system and compiler. It should be installed automatically when installing homebrew, but can be installed through the MacOS terminal. -->
 
 <!-- ## Useful Notes -->
 <!-- * When run using the generated projects, the game will run in the DAU-NEXT-API directory, which is useful for referencing data files. -->
