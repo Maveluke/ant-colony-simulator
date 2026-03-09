@@ -1,5 +1,22 @@
 #Ubi Contest API for Mac & Windows
 
+## To build and run the game
+
+### Windows
+* Run generate-windows.bat script in root
+* open visual studio solution in build/win64
+* build and run from visual studio
+
+### MacOS
+* Run ./generate-macos.sh script in root
+* go to build/macos directory
+    * run [make all] in macos terminal to build the program
+    * run [make run] to run the game
+        * Note that the application can't be closed in the window. use cmd + Q to quit the program
+* If using VSCode, commands can be run from the VSCode terminal
+ script
+
+
 ## Dependencies
 
 ### Windows
@@ -19,24 +36,5 @@
 * XCode command line tools
     * This has the MacOS build system and compiler. It should be installed automatically when installing homebrew, but can be installed through the MacOS terminal.
 
-## To build
-
-### Windows
-* Run generate-windows.bat script in DAU-NEXT-API directory
-* open visual studio solution in build/win64
-* build and run from visual studio
-
-### MacOS
-* Run ./generate-macos.sh script in DAU-NEXT-API directory
-* go to build/macos directory
-    * run [make all] in macos terminal to build the program
-    * run [make run] to run the game
-        * Note that the application can't be closed in the window. use cmd + Q to quit the program
-* If using VSCode, commands can be run from the VSCode terminal
-
-## To add code to project
-* Add new code files in src/Game subdirectory
-* Re-run the generate-windows or generate-macos script
-
-## Useful Notes
-* When run using the generated projects, the game will run in the DAU-NEXT-API directory, which is useful for referencing data files.
+<!-- ## Useful Notes -->
+<!-- * When run using the generated projects, the game will run in the DAU-NEXT-API directory, which is useful for referencing data files. -->
